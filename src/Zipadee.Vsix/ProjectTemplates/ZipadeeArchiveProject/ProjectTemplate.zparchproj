@@ -1,7 +1,10 @@
 <Project Sdk="Microsoft.Build.NoTargets/3.7.0">
 
   <PropertyGroup>
-    <TargetFramework>net472</TargetFramework>
+    <!-- Not a real compile target - nothing in this project compiles. Microsoft.Build.NoTargets
+         still needs a TargetFramework for its restore graph and for MSBuild to negotiate outputs
+         when this project references other projects (see M2: project output references). -->
+    <TargetFramework>net8.0</TargetFramework>
     <ProjectGuid>$guid1$</ProjectGuid>
   </PropertyGroup>
 
