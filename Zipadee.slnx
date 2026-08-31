@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Zipadee.Vsix/Zipadee.Vsix.csproj" />
+  </Folder>
+</Solution>

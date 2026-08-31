@@ -1,0 +1,52 @@
+<Project>
+
+  <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <RootNamespace>Zipadee.Vsix</RootNamespace>
+    <AssemblyName>Zipadee.Vsix</AssemblyName>
+    <GeneratePkgDefFile>true</GeneratePkgDefFile>
+    <IncludeAssemblyInVSIXContainer>true</IncludeAssemblyInVSIXContainer>
+    <IncludeDebugSymbolsInVSIXContainer>false</IncludeDebugSymbolsInVSIXContainer>
+    <IncludeDebugSymbolsInLocalVSIXDeployment>false</IncludeDebugSymbolsInLocalVSIXDeployment>
+    <CopyBuildOutputToOutputDirectory>true</CopyBuildOutputToOutputDirectory>
+    <CopyOutputSymbolsToOutputDirectory>true</CopyOutputSymbolsToOutputDirectory>
+    <UseCodebase>true</UseCodebase>
+    <StartAction>Program</StartAction>
+    <StartProgram Condition="'$(DevEnvDir)' != ''">$(DevEnvDir)devenv.exe</StartProgram>
+    <StartArguments>/rootsuffix Exp</StartArguments>
+    <VsixDeployOnDebug>true</VsixDeployOnDebug>
+    <MinimumVisualStudioVersion>17.0</MinimumVisualStudioVersion>
+    <CreateVsixContainer>true</CreateVsixContainer>
+    <!-- VSIX local deployment (F5 experimental instance) only works under classic MSBuild, not 'dotnet build' (used by CI). -->
+    <DeployExtension Condition="'$(MSBuildRuntimeType)' != 'Core'">true</DeployExtension>
+    <DeployExtension Condition="'$(MSBuildRuntimeType)' == 'Core'">false</DeployExtension>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.13.40008" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="17.14.2094" />
+    <PackageReference Include="Microsoft.VisualStudio.ProjectSystem.VS" Version="17.9.380" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="ProjectTemplates\**\*.*" />
+    <Content Include="ProjectTemplates\ZipadeeArchiveProject.zip">
+      <IncludeInVSIX>true</IncludeInVSIX>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <Target Name="ZipProjectTemplates" BeforeTargets="AssignTargetPaths;GetCopyToOutputDirectoryItems">
+    <ZipDirectory
+        SourceDirectory="ProjectTemplates\ZipadeeArchiveProject"
+        DestinationFile="ProjectTemplates\ZipadeeArchiveProject.zip"
+        Overwrite="true" />
+  </Target>
+
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />
+
+  <Import Project="$(VsSDKInstall)\Microsoft.VsSDK.targets" Condition="Exists('$(VsSDKInstall)\Microsoft.VsSDK.targets')" />
+
+</Project>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<VSTemplate Version="3.0.0" Type="Project" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
+  <TemplateData>
+    <Name>Zipadee Archive Project</Name>
+    <Description>Packages files, linked files, and other projects' build outputs into an archive (zip, 7z, tar, self-extracting exe).</Description>
+    <ProjectType>Zipadee</ProjectType>
+    <DefaultName>ZipadeeArchive</DefaultName>
+  </TemplateData>
+  <TemplateContent>
+    <Project TargetFileName="$safeprojectname$.zparchproj" File="ProjectTemplate.zparchproj" ReplaceParameters="true">
+    </Project>
+  </TemplateContent>
+</VSTemplate>
