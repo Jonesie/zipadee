@@ -32,7 +32,19 @@
 
   <ItemGroup>
     <None Remove="ProjectTemplates\**\*.*" />
+    <None Remove="TemplateDirs.pkgdef" />
+    <!-- Modern search-index template asset (declared in source.extension.vsixmanifest). -->
     <Content Include="ProjectTemplates\ZipadeeArchiveProject.zip">
+      <IncludeInVSIX>true</IncludeInVSIX>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <!-- Legacy NewProjectTemplates\TemplateDirs registration (see TemplateDirs.pkgdef) - the
+         mechanism actually confirmed working for New Project dialog discovery in this VS build. -->
+    <Content Include="ProjectTemplates\ZipadeeArchiveProject\**\*.*">
+      <IncludeInVSIX>true</IncludeInVSIX>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TemplateDirs.pkgdef">
       <IncludeInVSIX>true</IncludeInVSIX>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
