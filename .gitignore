@@ -427,3 +427,13 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Zipadee: our own "Zipadee.Vsix" project directory name is unfortunately matched
+# (case-insensitively) by the "*.vsix" rule above, which would silently exclude the
+# whole project. Un-ignore it explicitly, then re-ignore just the generated template zip.
+!src/Zipadee.Vsix/
+!src/Zipadee.Vsix/**
+src/Zipadee.Vsix/bin/
+src/Zipadee.Vsix/obj/
+src/Zipadee.Vsix/ProjectTemplates/*.zip
+src/Zipadee.Vsix/extension.vsixmanifest
