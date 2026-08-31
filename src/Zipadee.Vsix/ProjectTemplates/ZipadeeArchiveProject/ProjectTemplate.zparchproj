@@ -8,4 +8,8 @@
     <ProjectGuid>$guid1$</ProjectGuid>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Zipadee.Build" Version="0.1.0" />
+  </ItemGroup>
+
 </Project>

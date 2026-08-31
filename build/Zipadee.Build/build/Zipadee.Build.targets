@@ -1,0 +1,33 @@
+<Project>
+
+  <!-- Computed here, not in Zipadee.Build.props, because $(OutDir) isn't defined yet when
+       .props files are imported (before the SDK sets it based on Configuration/TargetFramework). -->
+  <PropertyGroup>
+    <ZipadeeArchiveOutputPath Condition="'$(ZipadeeArchiveOutputPath)' == ''">$(OutDir)$(MSBuildProjectName).zip</ZipadeeArchiveOutputPath>
+  </PropertyGroup>
+
+  <Target Name="ZipadeeCreateArchive"
+          AfterTargets="Build"
+          Condition="'$(DesignTimeBuild)' != 'true' AND '$(BuildingProject)' == 'true'"
+          Inputs="@(None)"
+          Outputs="$(ZipadeeArchiveOutputPath)">
+
+    <MakeDir Directories="$(OutDir)" Condition="!Exists('$(OutDir)')" />
+
+    <Delete Files="$(ZipadeeArchiveOutputPath)" Condition="Exists('$(ZipadeeArchiveOutputPath)')" />
+
+    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -tzip &quot;$(ZipadeeArchiveOutputPath)&quot; @(None-&gt;'&quot;%(Identity)&quot;', ' ')"
+          Condition="'@(None)' != ''"
+          WorkingDirectory="$(MSBuildProjectDirectory)" />
+
+    <Message Importance="high"
+              Text="Zipadee: no files to archive - add files to the project (Add &gt; Existing Item) to produce an archive."
+              Condition="'@(None)' == ''" />
+
+    <ItemGroup>
+      <FileWrites Include="$(ZipadeeArchiveOutputPath)" />
+    </ItemGroup>
+
+  </Target>
+
+</Project>
