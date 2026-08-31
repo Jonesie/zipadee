@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  release:
+    types: [ published ]
+
+permissions:
+  contents: write
+
+jobs:
+  publish-artifacts:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore Zipadee.slnx
+
+      - name: Build (Release)
+        run: dotnet build Zipadee.slnx --configuration Release --no-restore
+
+      - name: Upload VSIX to GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" src/Zipadee.Vsix/bin/Release/net472/*.vsix --clobber
+
+      # TODO: publish to the Visual Studio Marketplace (the official Microsoft extension
+      # store) once we decide to make the extension public. This needs a Marketplace
+      # publisher account, a personal access token stored as a repo secret, and running
+      # VsixPublisher.exe (from the VS SDK) with a publish manifest against the built
+      # .vsix. Deferred until that decision is made.
