@@ -1,6 +1,11 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project Sdk="Microsoft.Build.NoTargets/3.7.0">
+
   <PropertyGroup>
+    <!-- Not a real compile target - nothing in this project compiles. Microsoft.Build.NoTargets
+         still needs a TargetFramework for its restore graph and for MSBuild to negotiate outputs
+         when this project references other projects (see M2: project output references). -->
+    <TargetFramework>net8.0</TargetFramework>
     <ProjectGuid>$guid1$</ProjectGuid>
   </PropertyGroup>
+
 </Project>
