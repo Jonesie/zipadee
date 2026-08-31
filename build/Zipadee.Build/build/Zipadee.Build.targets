@@ -8,21 +8,28 @@
 
   <Target Name="ZipadeeCreateArchive"
           AfterTargets="Build"
-          Condition="'$(DesignTimeBuild)' != 'true' AND '$(BuildingProject)' == 'true'"
-          Inputs="@(None)"
+          Condition="'$(DesignTimeBuild)' != 'true'"
+          Inputs="@(None);@(Content)"
           Outputs="$(ZipadeeArchiveOutputPath)">
+
+    <ItemGroup>
+      <!-- VS's default "Add Existing Item" uses Content for a NoTargets project; None also
+           counts, since it's the more common convention for non-compiled files elsewhere. -->
+      <ZipadeeArchiveItem Include="@(None)" />
+      <ZipadeeArchiveItem Include="@(Content)" />
+    </ItemGroup>
 
     <MakeDir Directories="$(OutDir)" Condition="!Exists('$(OutDir)')" />
 
     <Delete Files="$(ZipadeeArchiveOutputPath)" Condition="Exists('$(ZipadeeArchiveOutputPath)')" />
 
-    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -tzip &quot;$(ZipadeeArchiveOutputPath)&quot; @(None-&gt;'&quot;%(Identity)&quot;', ' ')"
-          Condition="'@(None)' != ''"
+    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -tzip &quot;$(ZipadeeArchiveOutputPath)&quot; @(ZipadeeArchiveItem-&gt;'&quot;%(Identity)&quot;', ' ')"
+          Condition="'@(ZipadeeArchiveItem)' != ''"
           WorkingDirectory="$(MSBuildProjectDirectory)" />
 
     <Message Importance="high"
               Text="Zipadee: no files to archive - add files to the project (Add &gt; Existing Item) to produce an archive."
-              Condition="'@(None)' == ''" />
+              Condition="'@(ZipadeeArchiveItem)' == ''" />
 
     <ItemGroup>
       <FileWrites Include="$(ZipadeeArchiveOutputPath)" />
