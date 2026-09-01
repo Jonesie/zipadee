@@ -5,6 +5,11 @@
         "internalName": "Zipadee"
     },
     "overview": "overview.md",
+    "assetFiles": [
+        { "pathOnDisk": "images/solution-explorer.png", "targetPath": "images/solution-explorer.png" },
+        { "pathOnDisk": "images/new-project-dialog.png", "targetPath": "images/new-project-dialog.png" },
+        { "pathOnDisk": "images/build-output.png", "targetPath": "images/build-output.png" }
+    ],
     "priceCategory": "free",
     "publisher": "Jonesie",
     "private": false,

@@ -1,9 +1,8 @@
 <!--
   This is the Visual Studio Marketplace listing page for Zipadee, referenced by
-  publishManifest.json's "overview" field. Screenshots below are placeholders -
-  replace images/*.png with real captures before publishing (see issue #16), and
-  remove this comment once that's done. See VsixPublisher's "assetFiles" in
-  publishManifest.json for how these images get uploaded alongside this file.
+  publishManifest.json's "overview" field. See VsixPublisher's "assetFiles" in
+  publishManifest.json for how the images/ referenced below get uploaded
+  alongside this file.
 -->
 
 # Zipadee
@@ -29,13 +28,89 @@ Think of it as a lightweight, in-solution alternative to a separate packaging sc
 3. Add files via **Add > Existing Item** (or **Add as Link** for files outside the project folder), or add a **Project Reference** to another project in your solution to pull in its build output.
 4. Build. The archive appears alongside the project's other build output.
 
-Archive settings (format, compression level, password, self-extracting) are set as MSBuild properties in the project file - see the [README](https://github.com/Jonesie/zipadee) for the full list.
+Archive settings (format, compression level, password, self-extracting) are set as MSBuild properties in the project file - see [Project file reference](#project-file-reference) below for the full list.
 
-<!-- ![Solution Explorer showing a Zipadee Archive Project alongside a referenced console app project](images/solution-explorer.png "Solution Explorer") -->
+![Solution Explorer showing a Zipadee Archive Project alongside a referenced console app project](images/solution-explorer.png "Solution Explorer") 
 
-<!-- ![The New Project dialog with Zipadee Archive Project selected](images/new-project-dialog.png "New Project dialog") -->
+![The New Project dialog with Zipadee Archive Project selected](images/new-project-dialog.png "New Project dialog")
 
-<!-- ![A completed build producing a self-extracting archive](images/build-output.png "Build output") -->
+![A completed build producing a self-extracting archive](images/build-output.png "Build output")
+
+## Project file reference
+
+All archive settings are plain MSBuild properties, set directly in the `.zparchproj` file (or in a `.zparchproj.user` file for the password - see below). There is currently no in-IDE property page for these; edit the XML directly.
+
+| Property | Values | Default | Notes |
+|---|---|---|---|
+| `ZipadeeOutputFormat` | `Zip`, `SevenZip`, `Tar`, `GZip` | `Zip` | `GZip` produces a `.tar.gz` (tar, then gzip-compressed) since gzip alone can't hold more than one file. |
+| `ZipadeeCompressionLevel` | `Store`, `Fastest`, `Fast`, `Normal`, `Maximum`, `Ultra` | `Normal` | Maps to 7-Zip's `-mx=` levels. Ignored for `Tar` (tar itself doesn't compress). |
+| `ZipadeeCreateSfx` | `true`, `false` | `false` | Produces a self-extracting `.exe` instead of a plain archive. **Only valid with `ZipadeeOutputFormat=SevenZip`** - 7-Zip's SFX modules can't self-extract any other format, and the build fails with a clear error if combined with one. |
+| `ZipadeePassword` | any string | *(none)* | AES-256 password protection. **Only valid with `Zip` or `SevenZip`** - Tar and GZip have no encryption support in 7-Zip, and the build fails if combined with one. For 7-Zip, filenames are also encrypted (`-mhe=on`) automatically whenever a password is set. |
+
+### Where to put the items being archived
+
+Add files as regular `Content` or `None` items (Solution Explorer's **Add > Existing Item** uses `Content` for this project type):
+
+```xml
+<ItemGroup>
+  <Content Include="readme.txt" />
+</ItemGroup>
+```
+
+Link to a file that lives outside the project folder (Solution Explorer's **Add > Existing Item > Add as Link**) with `%Link%` metadata - it's archived at the link path, not its on-disk path:
+
+```xml
+<ItemGroup>
+  <Content Include="..\shared\LICENSE.txt" Link="docs\LICENSE.txt" />
+</ItemGroup>
+```
+
+Pull in another project's build output with a normal `ProjectReference` - the referenced project is built first, and its output (including the compiled assembly, for a runnable apphost-style `.exe`) is archived at the root of the archive:
+
+```xml
+<ItemGroup>
+  <ProjectReference Include="..\ConsoleApp\ConsoleApp.csproj" />
+</ItemGroup>
+```
+
+### Setting the password
+
+Since a password must never end up committed to source control, it isn't set in the `.zparchproj` file itself. Instead, create a `<ProjectFileName>.zparchproj.user` file next to it (already covered by Visual Studio's standard `.gitignore` template) with:
+
+```xml
+<Project>
+  <PropertyGroup>
+    <ZipadeePassword>YourPasswordHere</ZipadeePassword>
+  </PropertyGroup>
+</Project>
+```
+
+### Full example
+
+A project that produces a password-protected, self-extracting 7-Zip archive at maximum compression, containing a content file, a linked file, and another project's build output:
+
+```xml
+<Project Sdk="Microsoft.Build.NoTargets/3.7.0">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ZipadeeOutputFormat>SevenZip</ZipadeeOutputFormat>
+    <ZipadeeCompressionLevel>Maximum</ZipadeeCompressionLevel>
+    <ZipadeeCreateSfx>true</ZipadeeCreateSfx>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Zipadee.Build" Version="0.1.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Hello.txt" />
+    <Content Include="..\shared\LICENSE.txt" Link="docs\LICENSE.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ConsoleApp\ConsoleApp.csproj" />
+  </ItemGroup>
+</Project>
+```
+
+with a `ConsoleZip.zparchproj.user` file alongside it setting `ZipadeePassword`, as shown above.
 
 ## License
 
