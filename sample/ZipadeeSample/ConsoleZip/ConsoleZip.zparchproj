@@ -4,6 +4,7 @@
     <ProjectGuid>be0d9487-af1b-4516-95a8-b86b21e65449</ProjectGuid>
     <ZipadeeOutputFormat>SevenZip</ZipadeeOutputFormat>
     <ZipadeeCompressionLevel>Maximum</ZipadeeCompressionLevel>
+    <ZipadeeCreateSfx>true</ZipadeeCreateSfx>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Zipadee.Build" Version="0.1.0" />

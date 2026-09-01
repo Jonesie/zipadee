@@ -37,6 +37,11 @@
     <EnumValue Name="Ultra" DisplayName="Ultra" />
   </EnumProperty>
 
+  <BoolProperty Name="ZipadeeCreateSfx"
+                DisplayName="Self-extracting (.exe)"
+                Description="Produces a self-extracting .exe instead of a plain archive. Only supported for the SevenZip format."
+                Default="False" />
+
   <StringProperty Name="ZipadeePassword"
                    DisplayName="Password"
                    Description="AES-256 password protection. Only supported for the Zip and SevenZip formats. Stored in the .user file, never in the project file.">

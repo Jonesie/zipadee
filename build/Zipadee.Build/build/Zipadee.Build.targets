@@ -15,8 +15,15 @@
     <ZipadeeCompressionLevelValue Condition="'$(ZipadeeCompressionLevel)' == 'Maximum'">7</ZipadeeCompressionLevelValue>
     <ZipadeeCompressionLevelValue Condition="'$(ZipadeeCompressionLevel)' == 'Ultra'">9</ZipadeeCompressionLevelValue>
 
+    <!-- SFX (self-extracting .exe): 7-Zip's SFX modules can only self-extract a 7z payload, so
+         this only applies to (and is only valid for) the SevenZip format - see
+         ZipadeeValidateArchiveSettings. -->
+    <ZipadeeSfxModulePath Condition="'$(ZipadeeSfxModulePath)' == ''">$(MSBuildThisFileDirectory)..\tools\7z.sfx</ZipadeeSfxModulePath>
+    <ZipadeeSfxArg Condition="'$(ZipadeeCreateSfx)' == 'true'">-sfx&quot;$(ZipadeeSfxModulePath)&quot;</ZipadeeSfxArg>
+
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'Zip'">.zip</ZipadeeArchiveExtension>
-    <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'SevenZip'">.7z</ZipadeeArchiveExtension>
+    <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'SevenZip' and '$(ZipadeeCreateSfx)' == 'true'">.exe</ZipadeeArchiveExtension>
+    <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'SevenZip' and '$(ZipadeeCreateSfx)' != 'true'">.7z</ZipadeeArchiveExtension>
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'Tar'">.tar</ZipadeeArchiveExtension>
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'GZip'">.tar.gz</ZipadeeArchiveExtension>
 
@@ -36,6 +43,8 @@
   <Target Name="ZipadeeValidateArchiveSettings" BeforeTargets="Build">
     <Error Condition="'$(ZipadeePassword)' != '' and ('$(ZipadeeOutputFormat)' == 'Tar' or '$(ZipadeeOutputFormat)' == 'GZip')"
            Text="Zipadee: a password is set (ZipadeePassword) but 7-Zip has no encryption support for the Tar or GZip output formats. Use Zip or SevenZip instead, or remove the password." />
+    <Error Condition="'$(ZipadeeCreateSfx)' == 'true' and '$(ZipadeeOutputFormat)' != 'SevenZip'"
+           Text="Zipadee: ZipadeeCreateSfx is set but 7-Zip's SFX modules can only self-extract a 7z payload (confirmed: a zip-format SFX .exe builds without error but fails to extract). Set ZipadeeOutputFormat to SevenZip, or remove ZipadeeCreateSfx." />
   </Target>
 
   <!-- Split out from ZipadeeCreateArchive (rather than inlined at its top) so its Inputs check
@@ -134,12 +143,14 @@
 
     <!-- SevenZip: AES-256 is 7z's only encryption method (no -mem switch needed). -mhe=on also
          encrypts filenames/structure, not just file contents - defaulted on whenever a password
-         is set, since 7z is the one format here that supports it. -->
-    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -t7z -mx=$(ZipadeeCompressionLevelValue) -mhe=on -p%ZIPADEE_PASSWORD% -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
+         is set, since 7z is the one format here that supports it. $(ZipadeeSfxArg) (empty
+         unless ZipadeeCreateSfx is set) prepends the bundled SFX module, producing a
+         self-extracting .exe instead of a plain .7z - see ZipadeeArchiveExtension above. -->
+    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -t7z -mx=$(ZipadeeCompressionLevelValue) -mhe=on -p%ZIPADEE_PASSWORD% $(ZipadeeSfxArg) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
           Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'SevenZip' and '$(ZipadeePassword)' != ''"
           EnvironmentVariables="$(ZipadeePasswordEnv)"
           WorkingDirectory="$(ZipadeeStagingDir)" />
-    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -t7z -mx=$(ZipadeeCompressionLevelValue) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
+    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -t7z -mx=$(ZipadeeCompressionLevelValue) $(ZipadeeSfxArg) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
           Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'SevenZip' and '$(ZipadeePassword)' == ''"
           WorkingDirectory="$(ZipadeeStagingDir)" />
 
