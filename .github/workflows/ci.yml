@@ -20,6 +20,9 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      - name: Ensure local NuGet feed exists
+        run: New-Item -ItemType Directory -Force LocalPackages
+
       - name: Restore
         run: dotnet restore Zipadee.slnx
 

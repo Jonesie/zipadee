@@ -1,0 +1,40 @@
+<Project>
+
+  <!-- Computed here, not in Zipadee.Build.props, because $(OutDir) isn't defined yet when
+       .props files are imported (before the SDK sets it based on Configuration/TargetFramework). -->
+  <PropertyGroup>
+    <ZipadeeArchiveOutputPath Condition="'$(ZipadeeArchiveOutputPath)' == ''">$(OutDir)$(MSBuildProjectName).zip</ZipadeeArchiveOutputPath>
+  </PropertyGroup>
+
+  <Target Name="ZipadeeCreateArchive"
+          AfterTargets="Build"
+          Condition="'$(DesignTimeBuild)' != 'true'"
+          Inputs="@(None);@(Content)"
+          Outputs="$(ZipadeeArchiveOutputPath)">
+
+    <ItemGroup>
+      <!-- VS's default "Add Existing Item" uses Content for a NoTargets project; None also
+           counts, since it's the more common convention for non-compiled files elsewhere. -->
+      <ZipadeeArchiveItem Include="@(None)" />
+      <ZipadeeArchiveItem Include="@(Content)" />
+    </ItemGroup>
+
+    <MakeDir Directories="$(OutDir)" Condition="!Exists('$(OutDir)')" />
+
+    <Delete Files="$(ZipadeeArchiveOutputPath)" Condition="Exists('$(ZipadeeArchiveOutputPath)')" />
+
+    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -tzip &quot;$(ZipadeeArchiveOutputPath)&quot; @(ZipadeeArchiveItem-&gt;'&quot;%(Identity)&quot;', ' ')"
+          Condition="'@(ZipadeeArchiveItem)' != ''"
+          WorkingDirectory="$(MSBuildProjectDirectory)" />
+
+    <Message Importance="high"
+              Text="Zipadee: no files to archive - add files to the project (Add &gt; Existing Item) to produce an archive."
+              Condition="'@(ZipadeeArchiveItem)' == ''" />
+
+    <ItemGroup>
+      <FileWrites Include="$(ZipadeeArchiveOutputPath)" />
+    </ItemGroup>
+
+  </Target>
+
+</Project>

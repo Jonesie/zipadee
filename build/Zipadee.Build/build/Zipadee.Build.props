@@ -1,0 +1,10 @@
+<Project>
+
+  <PropertyGroup>
+    <ZipadeeSevenZipExe>$(MSBuildThisFileDirectory)..\tools\x64\7za.exe</ZipadeeSevenZipExe>
+    <!-- Nothing actually compiles for TargetFramework, so a bin\Debug\net8.0\ subfolder is
+         just confusing - drop the framework-named segment from the output path. -->
+    <AppendTargetFrameworkToOutputPath Condition="'$(AppendTargetFrameworkToOutputPath)' == ''">false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+</Project>

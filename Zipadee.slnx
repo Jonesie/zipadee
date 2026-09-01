@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/build/">
+    <Project Path="build/Zipadee.Build/Zipadee.Build.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Zipadee.Vsix/Zipadee.Vsix.csproj" />
   </Folder>
