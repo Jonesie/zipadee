@@ -7,4 +7,13 @@
     <AppendTargetFrameworkToOutputPath Condition="'$(AppendTargetFrameworkToOutputPath)' == ''">false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
 
+  <!-- Registers the "Archive" property page (output format, compression level, password) -
+       see https://github.com/dotnet/project-system/blob/main/docs/repo/property-pages/how-to-add-a-new-project-property-page.md.
+       Pure MSBuild item, so this works from a referenced package without any VSIX/CPS code. -->
+  <ItemGroup>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\ZipadeeArchive.xaml">
+      <Context>Project</Context>
+    </PropertyPageSchema>
+  </ItemGroup>
+
 </Project>
