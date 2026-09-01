@@ -3,29 +3,87 @@
   <!-- Computed here, not in Zipadee.Build.props, because $(OutDir) isn't defined yet when
        .props files are imported (before the SDK sets it based on Configuration/TargetFramework). -->
   <PropertyGroup>
-    <ZipadeeArchiveOutputPath Condition="'$(ZipadeeArchiveOutputPath)' == ''">$(OutDir)$(MSBuildProjectName).zip</ZipadeeArchiveOutputPath>
+    <!-- Absolute: the archive Exec below runs with WorkingDirectory set to the staging folder
+         (see ZipadeeStagingDir), so a relative path here would resolve against that instead of
+         $(OutDir). -->
+    <ZipadeeArchiveOutputPath Condition="'$(ZipadeeArchiveOutputPath)' == ''">$(MSBuildProjectDirectory)\$(OutDir)$(MSBuildProjectName).zip</ZipadeeArchiveOutputPath>
+    <ZipadeeStagingDir Condition="'$(ZipadeeStagingDir)' == ''">$(MSBuildProjectDirectory)\$(IntermediateOutputPath)zipadee-stage\</ZipadeeStagingDir>
   </PropertyGroup>
+
+  <!-- Split out from ZipadeeCreateArchive (rather than inlined at its top) so its Inputs check
+       below can see @(ZipadeeProjectOutputItem)'s real resolved file paths - depending on
+       @(ProjectReference) directly there would only catch changes to the referencing .csproj
+       file itself, not to the referenced project's actual build output. -->
+  <Target Name="ZipadeeResolveProjectReferenceOutputs">
+    <!-- Referenced projects' build output (P2P references) is pulled in via the standard
+         cross-project "copy to output directory" protocol (the same mechanism that copies a
+         P2P reference's output next to a normal project's own output), archived at the
+         relative path that protocol assigns it. -->
+    <MSBuild Projects="@(ProjectReference)" Targets="GetCopyToOutputDirectoryItems" Condition="'@(ProjectReference)' != ''">
+      <Output TaskParameter="TargetOutputs" ItemName="ZipadeeProjectOutputItem" />
+    </MSBuild>
+
+    <!-- GetCopyToOutputDirectoryItems skips the referenced project's own compiled assembly
+         when ReferenceOutputAssembly is false - the NoTargets SDK's default for
+         ProjectReference, since it isn't being used as a compile-time reference. Without this,
+         the archive would be missing the managed assembly a native apphost .exe needs to
+         actually run. GetTargetPath fills that gap; it doesn't supply %(TargetPath) metadata
+         itself, so it's set explicitly here to just the output filename, matching where the
+         apphost/deps/runtimeconfig files already land. -->
+    <MSBuild Projects="@(ProjectReference)" Targets="GetTargetPath" Condition="'@(ProjectReference)' != ''">
+      <Output TaskParameter="TargetOutputs" ItemName="ZipadeeProjectTargetPathItem" />
+    </MSBuild>
+    <ItemGroup>
+      <ZipadeeProjectOutputItem Include="@(ZipadeeProjectTargetPathItem)">
+        <TargetPath>%(ZipadeeProjectTargetPathItem.Filename)%(ZipadeeProjectTargetPathItem.Extension)</TargetPath>
+      </ZipadeeProjectOutputItem>
+    </ItemGroup>
+  </Target>
 
   <Target Name="ZipadeeCreateArchive"
           AfterTargets="Build"
+          DependsOnTargets="ZipadeeResolveProjectReferenceOutputs"
           Condition="'$(DesignTimeBuild)' != 'true'"
-          Inputs="@(None);@(Content)"
+          Inputs="@(None);@(Content);@(ZipadeeProjectOutputItem)"
           Outputs="$(ZipadeeArchiveOutputPath)">
 
+    <!-- Files already in the project, or linked in from elsewhere on disk via %(Link) (VS's
+         "Add Existing Item > Add as Link"), are archived under their project-relative path or
+         %(Link) path. None also counts alongside Content, since it's the more common
+         convention for non-compiled files elsewhere. -->
     <ItemGroup>
-      <!-- VS's default "Add Existing Item" uses Content for a NoTargets project; None also
-           counts, since it's the more common convention for non-compiled files elsewhere. -->
       <ZipadeeArchiveItem Include="@(None)" />
       <ZipadeeArchiveItem Include="@(Content)" />
     </ItemGroup>
+    <ItemGroup>
+      <ZipadeeArchiveItem>
+        <ZipadeeArchivePath Condition="'%(ZipadeeArchiveItem.Link)' != ''">%(ZipadeeArchiveItem.Link)</ZipadeeArchivePath>
+        <ZipadeeArchivePath Condition="'%(ZipadeeArchiveItem.Link)' == ''">%(ZipadeeArchiveItem.Identity)</ZipadeeArchivePath>
+      </ZipadeeArchiveItem>
+    </ItemGroup>
+    <ItemGroup>
+      <ZipadeeArchiveItem Include="@(ZipadeeProjectOutputItem)">
+        <ZipadeeArchivePath>%(ZipadeeProjectOutputItem.TargetPath)</ZipadeeArchivePath>
+      </ZipadeeArchiveItem>
+    </ItemGroup>
+
+    <!-- 7-Zip's command line can't rename an entry on the way in, so the only reliable way to
+         put linked files and project outputs at their expected in-archive path is to stage
+         copies of everything into a scratch folder laid out exactly like the archive, then zip
+         that whole folder. Wiped and rebuilt each time this target actually runs (per the
+         Inputs/Outputs check above) so removed items don't linger as stale staged files. -->
+    <RemoveDir Directories="$(ZipadeeStagingDir)" Condition="Exists('$(ZipadeeStagingDir)')" />
+    <Copy SourceFiles="@(ZipadeeArchiveItem)"
+          DestinationFiles="@(ZipadeeArchiveItem->'$(ZipadeeStagingDir)%(ZipadeeArchivePath)')"
+          Condition="'@(ZipadeeArchiveItem)' != ''" />
 
     <MakeDir Directories="$(OutDir)" Condition="!Exists('$(OutDir)')" />
 
     <Delete Files="$(ZipadeeArchiveOutputPath)" Condition="Exists('$(ZipadeeArchiveOutputPath)')" />
 
-    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -tzip &quot;$(ZipadeeArchiveOutputPath)&quot; @(ZipadeeArchiveItem-&gt;'&quot;%(Identity)&quot;', ' ')"
+    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -tzip -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
           Condition="'@(ZipadeeArchiveItem)' != ''"
-          WorkingDirectory="$(MSBuildProjectDirectory)" />
+          WorkingDirectory="$(ZipadeeStagingDir)" />
 
     <Message Importance="high"
               Text="Zipadee: no files to archive - add files to the project (Add &gt; Existing Item) to produce an archive."
