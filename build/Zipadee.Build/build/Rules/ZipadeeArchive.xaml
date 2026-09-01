@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8" ?>
+<!-- Registered with Context="BrowseObject" (see Zipadee.Build.props) rather than "Project" -
+     these properties show up in the classic Properties tool window (F4) when the project node
+     is selected, not in a tabbed Project Properties designer. That tabbed designer appears to
+     be specific to the C#/VB/F# managed project system, not something a project with its own
+     custom `language` (like Zipadee's) gets access to just by registering a rule/capability. -->
 <Rule Name="ZipadeeArchive"
       Description="Settings for the archive this project produces."
       DisplayName="Archive"
-      PageTemplate="generic"
-      Order="500"
       xmlns="http://schemas.microsoft.com/build/2009/properties">
 
   <Rule.DataSource>
