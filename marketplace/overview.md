@@ -65,6 +65,16 @@ Link to a file that lives outside the project folder (Solution Explorer's **Add 
 </ItemGroup>
 ```
 
+Link in a *whole folder* from outside the project by combining a wildcard `Include` with `%(RecursiveDir)` in `Link` - every file under it, including subfolders, is archived preserving that folder's structure. There's no dedicated "add folder as link" command in Solution Explorer for this - add the `ItemGroup` by editing the `.zparchproj` file directly:
+
+```xml
+<ItemGroup>
+  <Content Include="..\shared-assets\**\*.*">
+    <Link>assets\%(RecursiveDir)%(Filename)%(Extension)</Link>
+  </Content>
+</ItemGroup>
+```
+
 Pull in another project's build output with a normal `ProjectReference` - the referenced project is built first, and its output (including the compiled assembly, for a runnable apphost-style `.exe`) is archived at the root of the archive:
 
 ```xml
