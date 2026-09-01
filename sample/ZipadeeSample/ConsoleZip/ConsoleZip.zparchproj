@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.Build.NoTargets/3.7.0">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <ProjectGuid>be0d9487-af1b-4516-95a8-b86b21e65449</ProjectGuid>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Zipadee.Build" Version="0.1.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Hello.txt" />
+    <Content Include="..\shared\LICENSE.txt" Link="docs\LICENSE.txt" />
+    <Content Include="More\New Bitmap image.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ConsoleApp\ConsoleApp.csproj" />
+  </ItemGroup>
+</Project>
