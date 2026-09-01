@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Registered with Context="BrowseObject" (see Zipadee.Build.props) rather than "Project" -
+     these properties show up in the classic Properties tool window (F4) when the project node
+     is selected, not in a tabbed Project Properties designer. That tabbed designer appears to
+     be specific to the C#/VB/F# managed project system, not something a project with its own
+     custom `language` (like Zipadee's) gets access to just by registering a rule/capability. -->
+<Rule Name="ZipadeeArchive"
+      Description="Settings for the archive this project produces."
+      DisplayName="Archive"
+      xmlns="http://schemas.microsoft.com/build/2009/properties">
+
+  <Rule.DataSource>
+    <DataSource Persistence="ProjectFile"
+                SourceOfDefaultValue="AfterContext"
+                HasConfigurationCondition="False" />
+  </Rule.DataSource>
+
+  <EnumProperty Name="ZipadeeOutputFormat"
+                DisplayName="Output format"
+                Description="The archive format to produce."
+                Default="Zip">
+    <EnumValue Name="Zip" DisplayName="Zip (.zip)" />
+    <EnumValue Name="SevenZip" DisplayName="7-Zip (.7z)" />
+    <EnumValue Name="Tar" DisplayName="Tar (.tar)" />
+    <EnumValue Name="GZip" DisplayName="Gzip-compressed tar (.tar.gz)" />
+  </EnumProperty>
+
+  <EnumProperty Name="ZipadeeCompressionLevel"
+                DisplayName="Compression level"
+                Description="How hard to compress. Ignored for Tar (tar itself doesn't compress)."
+                Default="Normal">
+    <EnumValue Name="Store" DisplayName="Store (no compression)" />
+    <EnumValue Name="Fastest" DisplayName="Fastest" />
+    <EnumValue Name="Fast" DisplayName="Fast" />
+    <EnumValue Name="Normal" DisplayName="Normal" />
+    <EnumValue Name="Maximum" DisplayName="Maximum" />
+    <EnumValue Name="Ultra" DisplayName="Ultra" />
+  </EnumProperty>
+
+  <StringProperty Name="ZipadeePassword"
+                   DisplayName="Password"
+                   Description="AES-256 password protection. Only supported for the Zip and SevenZip formats. Stored in the .user file, never in the project file.">
+    <StringProperty.DataSource>
+      <DataSource Persistence="UserFile" HasConfigurationCondition="False" />
+    </StringProperty.DataSource>
+    <StringProperty.ValueEditors>
+      <ValueEditor EditorType="PasswordString" />
+    </StringProperty.ValueEditors>
+  </StringProperty>
+
+</Rule>

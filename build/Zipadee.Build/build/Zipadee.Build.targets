@@ -3,12 +3,40 @@
   <!-- Computed here, not in Zipadee.Build.props, because $(OutDir) isn't defined yet when
        .props files are imported (before the SDK sets it based on Configuration/TargetFramework). -->
   <PropertyGroup>
+    <ZipadeeOutputFormat Condition="'$(ZipadeeOutputFormat)' == ''">Zip</ZipadeeOutputFormat>
+    <ZipadeeCompressionLevel Condition="'$(ZipadeeCompressionLevel)' == ''">Normal</ZipadeeCompressionLevel>
+
+    <!-- 7-Zip's -mx= level. Not used for Tar (tar itself doesn't compress) or for GZip's tar
+         step (only the gzip step after it compresses). -->
+    <ZipadeeCompressionLevelValue Condition="'$(ZipadeeCompressionLevel)' == 'Store'">0</ZipadeeCompressionLevelValue>
+    <ZipadeeCompressionLevelValue Condition="'$(ZipadeeCompressionLevel)' == 'Fastest'">1</ZipadeeCompressionLevelValue>
+    <ZipadeeCompressionLevelValue Condition="'$(ZipadeeCompressionLevel)' == 'Fast'">3</ZipadeeCompressionLevelValue>
+    <ZipadeeCompressionLevelValue Condition="'$(ZipadeeCompressionLevel)' == 'Normal'">5</ZipadeeCompressionLevelValue>
+    <ZipadeeCompressionLevelValue Condition="'$(ZipadeeCompressionLevel)' == 'Maximum'">7</ZipadeeCompressionLevelValue>
+    <ZipadeeCompressionLevelValue Condition="'$(ZipadeeCompressionLevel)' == 'Ultra'">9</ZipadeeCompressionLevelValue>
+
+    <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'Zip'">.zip</ZipadeeArchiveExtension>
+    <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'SevenZip'">.7z</ZipadeeArchiveExtension>
+    <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'Tar'">.tar</ZipadeeArchiveExtension>
+    <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'GZip'">.tar.gz</ZipadeeArchiveExtension>
+
     <!-- Absolute: the archive Exec below runs with WorkingDirectory set to the staging folder
          (see ZipadeeStagingDir), so a relative path here would resolve against that instead of
          $(OutDir). -->
-    <ZipadeeArchiveOutputPath Condition="'$(ZipadeeArchiveOutputPath)' == ''">$(MSBuildProjectDirectory)\$(OutDir)$(MSBuildProjectName).zip</ZipadeeArchiveOutputPath>
+    <ZipadeeArchiveOutputPath Condition="'$(ZipadeeArchiveOutputPath)' == ''">$(MSBuildProjectDirectory)\$(OutDir)$(MSBuildProjectName)$(ZipadeeArchiveExtension)</ZipadeeArchiveOutputPath>
     <ZipadeeStagingDir Condition="'$(ZipadeeStagingDir)' == ''">$(MSBuildProjectDirectory)\$(IntermediateOutputPath)zipadee-stage\</ZipadeeStagingDir>
+    <!-- GZip only: intermediate, uncompressed tar that the final gzip step compresses. Lives in
+         obj\, already gitignored, so it's left behind rather than explicitly cleaned up. -->
+    <ZipadeeIntermediateTarPath Condition="'$(ZipadeeIntermediateTarPath)' == ''">$(MSBuildProjectDirectory)\$(IntermediateOutputPath)$(MSBuildProjectName).tar</ZipadeeIntermediateTarPath>
   </PropertyGroup>
+
+  <!-- Runs unconditionally (no Inputs/Outputs) so an invalid Password+Tar/GZip combination is
+       always caught, even on a build where ZipadeeCreateArchive itself would otherwise be
+       skipped as up-to-date. -->
+  <Target Name="ZipadeeValidateArchiveSettings" BeforeTargets="Build">
+    <Error Condition="'$(ZipadeePassword)' != '' and ('$(ZipadeeOutputFormat)' == 'Tar' or '$(ZipadeeOutputFormat)' == 'GZip')"
+           Text="Zipadee: a password is set (ZipadeePassword) but 7-Zip has no encryption support for the Tar or GZip output formats. Use Zip or SevenZip instead, or remove the password." />
+  </Target>
 
   <!-- Split out from ZipadeeCreateArchive (rather than inlined at its top) so its Inputs check
        below can see @(ZipadeeProjectOutputItem)'s real resolved file paths - depending on
@@ -42,7 +70,7 @@
 
   <Target Name="ZipadeeCreateArchive"
           AfterTargets="Build"
-          DependsOnTargets="ZipadeeResolveProjectReferenceOutputs"
+          DependsOnTargets="ZipadeeValidateArchiveSettings;ZipadeeResolveProjectReferenceOutputs"
           Condition="'$(DesignTimeBuild)' != 'true'"
           Inputs="@(None);@(Content);@(ZipadeeProjectOutputItem)"
           Outputs="$(ZipadeeArchiveOutputPath)">
@@ -81,9 +109,54 @@
 
     <Delete Files="$(ZipadeeArchiveOutputPath)" Condition="Exists('$(ZipadeeArchiveOutputPath)')" />
 
-    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -tzip -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
-          Condition="'@(ZipadeeArchiveItem)' != ''"
+    <!-- The password is passed as an environment variable and referenced as a %-placeholder in
+         the command text, rather than embedded directly in it - MSBuild's Exec task always
+         echoes its Command text to the build log (which for a PR/CI build gets persisted and
+         possibly published), and 7-Zip's CLI has no safer input channel (no stdin/response-file
+         support for it). This keeps the literal password out of that log.
+
+         %3B-escaped: MSBuild splits both item lists and this string-array task parameter on
+         unescaped ';', which would otherwise silently corrupt (truncate/split) a password that
+         happens to contain one. -->
+    <PropertyGroup>
+      <ZipadeePasswordEnv>ZIPADEE_PASSWORD=$(ZipadeePassword.Replace(';', '%3B'))</ZipadeePasswordEnv>
+    </PropertyGroup>
+
+    <!-- Zip: AES-256 needs -mem=AES256 explicitly, since 7-Zip's zip writer otherwise defaults
+         to the weak, legacy ZipCrypto method. -->
+    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -tzip -mx=$(ZipadeeCompressionLevelValue) -mem=AES256 -p%ZIPADEE_PASSWORD% -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
+          Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'Zip' and '$(ZipadeePassword)' != ''"
+          EnvironmentVariables="$(ZipadeePasswordEnv)"
           WorkingDirectory="$(ZipadeeStagingDir)" />
+    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -tzip -mx=$(ZipadeeCompressionLevelValue) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
+          Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'Zip' and '$(ZipadeePassword)' == ''"
+          WorkingDirectory="$(ZipadeeStagingDir)" />
+
+    <!-- SevenZip: AES-256 is 7z's only encryption method (no -mem switch needed). -mhe=on also
+         encrypts filenames/structure, not just file contents - defaulted on whenever a password
+         is set, since 7z is the one format here that supports it. -->
+    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -t7z -mx=$(ZipadeeCompressionLevelValue) -mhe=on -p%ZIPADEE_PASSWORD% -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
+          Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'SevenZip' and '$(ZipadeePassword)' != ''"
+          EnvironmentVariables="$(ZipadeePasswordEnv)"
+          WorkingDirectory="$(ZipadeeStagingDir)" />
+    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -t7z -mx=$(ZipadeeCompressionLevelValue) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
+          Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'SevenZip' and '$(ZipadeePassword)' == ''"
+          WorkingDirectory="$(ZipadeeStagingDir)" />
+
+    <!-- Tar: no compression setting (tar itself doesn't compress) and no password (validated
+         above - ZipadeeValidateArchiveSettings already failed the build if one was set). -->
+    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -ttar -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
+          Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'Tar'"
+          WorkingDirectory="$(ZipadeeStagingDir)" />
+
+    <!-- GZip: a raw gzip stream holds one file, not a container, so a multi-file archive needs
+         a tar wrapper first - tar the staging folder into an intermediate .tar (uncompressed),
+         then gzip-compress that .tar into the final .tar.gz. -->
+    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -ttar -r &quot;$(ZipadeeIntermediateTarPath)&quot; *"
+          Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'GZip'"
+          WorkingDirectory="$(ZipadeeStagingDir)" />
+    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -tgzip -mx=$(ZipadeeCompressionLevelValue) &quot;$(ZipadeeArchiveOutputPath)&quot; &quot;$(ZipadeeIntermediateTarPath)&quot;"
+          Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'GZip'" />
 
     <Message Importance="high"
               Text="Zipadee: no files to archive - add files to the project (Add &gt; Existing Item) to produce an archive."
@@ -91,6 +164,7 @@
 
     <ItemGroup>
       <FileWrites Include="$(ZipadeeArchiveOutputPath)" />
+      <FileWrites Include="$(ZipadeeIntermediateTarPath)" Condition="'$(ZipadeeOutputFormat)' == 'GZip'" />
     </ItemGroup>
 
   </Target>

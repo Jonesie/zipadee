@@ -7,4 +7,16 @@
     <AppendTargetFrameworkToOutputPath Condition="'$(AppendTargetFrameworkToOutputPath)' == ''">false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
 
+  <!-- Registers ZipadeeArchive.xaml so its properties (output format, compression level,
+       password) show up in the Properties tool window (F4) when the project node is selected.
+       Context="BrowseObject" is what does that - a generic CPS mechanism, unlike the tabbed
+       Project Properties designer (Context="Project"), which appears to be specific to the
+       C#/VB/F# managed project system. Pure MSBuild item, so this works from a referenced
+       package without any VSIX/CPS code. -->
+  <ItemGroup>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\ZipadeeArchive.xaml">
+      <Context>BrowseObject</Context>
+    </PropertyPageSchema>
+  </ItemGroup>
+
 </Project>
