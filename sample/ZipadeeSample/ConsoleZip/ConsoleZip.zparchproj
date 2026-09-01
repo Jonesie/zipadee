@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.Build.NoTargets/3.7.0">
   <PropertyGroup>
-    <TargetFramework>net472</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ProjectGuid>be0d9487-af1b-4516-95a8-b86b21e65449</ProjectGuid>
     <ZipadeeOutputFormat>SevenZip</ZipadeeOutputFormat>
     <ZipadeeCompressionLevel>Maximum</ZipadeeCompressionLevel>
