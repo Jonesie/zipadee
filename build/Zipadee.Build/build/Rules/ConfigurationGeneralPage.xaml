@@ -22,6 +22,12 @@
     <Category Name="Archive" DisplayName="Archive" Description="Settings for the archive this project produces." />
   </Rule.Categories>
 
+  <!-- See the note in ConfigurationGeneralBrowseObject.xaml - every working example declares a
+       rule-level DataSource, so match that rather than relying on per-property ones alone. -->
+  <Rule.DataSource>
+    <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+  </Rule.DataSource>
+
   <EnumProperty Name="ZipadeeOutputFormat"
                 Category="Archive"
                 DisplayName="Output format"

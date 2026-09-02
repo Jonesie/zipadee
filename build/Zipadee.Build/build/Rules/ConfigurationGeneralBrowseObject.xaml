@@ -23,11 +23,22 @@
      there's nothing to gain by restating them. See the notes on issue #4. -->
 <Rule Name="ConfigurationGeneralBrowseObject"
       OverrideMode="Extend"
+      DisplayName="General"
+      PageTemplate="generic"
       xmlns="http://schemas.microsoft.com/build/2009/properties">
 
   <Rule.Categories>
     <Category Name="Archive" DisplayName="Archive" Description="Settings for the archive this project produces." />
   </Rule.Categories>
+
+  <!-- Rule-level DataSource. Every rule that demonstrably works - Microsoft's own
+       GeneralBrowseObject.xaml, dotnet/project-system's, and the WindowsScript custom
+       project type sample - declares one, and CPS binds the browse object through it. An
+       earlier revision here dropped it when switching to OverrideMode="Extend", which may well
+       be why that attempt showed nothing even with the rule name correct. -->
+  <Rule.DataSource>
+    <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+  </Rule.DataSource>
 
   <EnumProperty Name="ZipadeeOutputFormat"
                 Category="Archive"
