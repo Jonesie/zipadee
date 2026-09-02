@@ -4,9 +4,9 @@
     <TargetFramework>net8.0</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageId>Zipadee.Build</PackageId>
-    <Version>0.1.7</Version>
+    <Version>0.1.9</Version>
     <Authors>Jonesie</Authors>
-    <Description>Build-time logic for Zipadee Archive Projects: shells out to a bundled 7-Zip to produce the archive. Not intended for direct use - referenced automatically by the Zipadee Archive Project template.</Description>
+    <Description>Build-time logic for Zipadee Archive Projects: shells out to 7-Zip (expected on PATH) to produce the archive. Not intended for direct use - referenced automatically by the Zipadee Archive Project template.</Description>
     <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
     <NoWarn>$(NoWarn);NU5128</NoWarn>
     <IncludeBuildOutput>false</IncludeBuildOutput>
@@ -15,7 +15,6 @@
 
   <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\" />
-    <None Include="tools\**" Pack="true" PackagePath="tools\" />
   </ItemGroup>
 
 </Project>

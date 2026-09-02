@@ -14,7 +14,7 @@ Think of it as a lightweight, in-solution alternative to a separate packaging sc
 ## Features
 
 - **Files, links, and project outputs** — add existing files directly, link to files elsewhere on disk, or reference another project in the solution and pull in its build output (with correct build ordering, for free, via standard MSBuild project references).
-- **Multiple archive formats** — Zip, 7-Zip (.7z), Tar, gzip-compressed tar (.tar.gz), Windows Cabinet (.cab), and RAR (.rar) using your own installed copy of WinRAR - RAR's format is proprietary, so unlike the others this one isn't bundled and needs WinRAR installed separately.
+- **Multiple archive formats** — Zip, 7-Zip (.7z), Tar, gzip-compressed tar (.tar.gz), Windows Cabinet (.cab), and RAR (.rar). None of the underlying tools are bundled with Zipadee itself - see Getting started below for what each format needs installed.
 - **Configurable compression** — from Store (no compression) through Ultra.
 - **Password protection** — AES-256 encryption for the Zip, 7-Zip, and RAR formats, with header encryption (hides filenames too) applied automatically. The password lives in your local `.user` file, never in the shared project file.
 - **Self-extracting archives** — produce a self-extracting `.exe` (7-Zip format) that needs no archive tool to open.
@@ -23,10 +23,14 @@ Think of it as a lightweight, in-solution alternative to a separate packaging sc
 
 ## Getting started
 
-1. Install this extension.
-2. In Visual Studio, choose **File > New > Project** and search for **Zipadee Archive Project**.
-3. Add files via **Add > Existing Item** (or **Add as Link** for files outside the project folder), or add a **Project Reference** to another project in your solution to pull in its build output.
-4. Build. The archive appears alongside the project's other build output.
+1. Install whatever external tool your chosen format needs - none of them are bundled, and both are expected on `PATH` (neither installer adds itself there automatically - a manual step after installing):
+   - `Zip`, `SevenZip`, `Tar`, `GZip` — [7-Zip](https://www.7-zip.org/)'s command-line tool (`7z`).
+   - `Rar` — [WinRAR](https://www.rarlab.com/download.htm)'s command-line tool (`rar`).
+   - `Cab` — nothing extra; uses `makecab.exe`, built into every Windows install.
+2. Install this extension.
+3. In Visual Studio, choose **File > New > Project** and search for **Zipadee Archive Project**.
+4. Add files via **Add > Existing Item** (or **Add as Link** for files outside the project folder), or add a **Project Reference** to another project in your solution to pull in its build output.
+5. Build. The archive appears alongside the project's other build output.
 
 Archive settings (format, compression level, password, self-extracting) are set as MSBuild properties in the project file - see [Project file reference](#project-file-reference) below for the full list.
 
@@ -45,12 +49,11 @@ All archive settings are plain MSBuild properties. You can set them either from 
 
 | Property | Values | Default | Notes |
 |---|---|---|---|
-| `ZipadeeOutputFormat` | `Zip`, `SevenZip`, `Tar`, `GZip`, `Cab`, `Rar` | `Zip` | `GZip` produces a `.tar.gz` (tar, then gzip-compressed) since gzip alone can't hold more than one file. `Cab` produces a Windows Cabinet using the `makecab.exe` built into every Windows install - see [Cab files and DDF support](#cab-files-and-ddf-support) below. `Rar` needs WinRAR installed - it's proprietary, so it isn't bundled the way the others are (auto-detected, or set `ZipadeeRarPath` below). |
+| `ZipadeeOutputFormat` | `Zip`, `SevenZip`, `Tar`, `GZip`, `Cab`, `Rar` | `Zip` | `Zip`/`SevenZip`/`Tar`/`GZip` need 7-Zip's command-line tool on `PATH`; `Rar` needs WinRAR's `rar` on `PATH` too - see Getting started above. None of them are bundled. `GZip` produces a `.tar.gz` (tar, then gzip-compressed) since gzip alone can't hold more than one file. `Cab` produces a Windows Cabinet using the `makecab.exe` built into every Windows install - nothing extra needed - see [Cab files and DDF support](#cab-files-and-ddf-support) below. |
 | `ZipadeeCompressionLevel` | `Store`, `Fastest`, `Fast`, `Normal`, `Maximum`, `Ultra` | `Normal` | One generic scale across every format - each maps it to its own native settings differently. See [Compression level mapping](#compression-level-mapping) below. Ignored for `Tar` (tar itself doesn't compress). |
-| `ZipadeeCreateSfx` | `true`, `false` | `false` | Produces a self-extracting `.exe` instead of a plain archive. **Only valid with `ZipadeeOutputFormat=SevenZip`** - 7-Zip's SFX modules can't self-extract any other format, and the build fails with a clear error if combined with one. |
+| `ZipadeeCreateSfx` | `true`, `false` | `false` | Produces a self-extracting `.exe` instead of a plain archive (console-style extraction, since 7-Zip's default SFX module is used). **Only valid with `ZipadeeOutputFormat=SevenZip`** - 7-Zip's SFX modules can't self-extract any other format, and the build fails with a clear error if combined with one. |
 | `ZipadeePassword` | any string | *(none)* | AES-256 password protection. **Only valid with `Zip`, `SevenZip`, or `Rar`** - Tar, GZip, and Cab have no encryption support, and the build fails if combined with one. Filenames are also encrypted automatically whenever a password is set (7-Zip's `-mhe=on`, or RAR's `-hp`, which does this as part of the same switch that sets the password). |
 | `ZipadeeIncrementalBuild` | `true`, `false` | `true` | Skip re-archiving when nothing changed. Set to `false` to force a fresh archive on every build. |
-| `ZipadeeRarPath` | a file path | *(auto-detected)* | Explicit path to `rar.exe`, for a non-default WinRAR install. Only needed if auto-detection (checking the usual install locations, then the registry) doesn't find it - the build fails with a clear error either way if `Rar` is selected and nothing is found. |
 
 ### Where to put the items being archived
 
@@ -159,7 +162,7 @@ with a `ConsoleZip.zparchproj.user` file alongside it setting `ZipadeePassword`,
 
 ## License
 
-Zipadee is licensed under [GPL-3.0](https://github.com/Jonesie/zipadee/blob/main/LICENSE). It bundles 7-Zip (LGPL / BSD 3-clause / BSD 2-clause) to perform the actual archiving.
+Zipadee is licensed under [GPL-3.0](https://github.com/Jonesie/zipadee/blob/main/LICENSE). It shells out to 7-Zip (LGPL / BSD 3-clause / BSD 2-clause) to perform the actual archiving - not bundled, see Getting started above.
 
 <a href="https://www.buymeacoffee.com/jonesie" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 

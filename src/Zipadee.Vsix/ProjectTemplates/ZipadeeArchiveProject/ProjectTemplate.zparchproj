@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Zipadee.Build" Version="0.1.7" />
+    <PackageReference Include="Zipadee.Build" Version="0.1.9" />
   </ItemGroup>
 
 </Project>
