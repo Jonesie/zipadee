@@ -26,9 +26,11 @@
   <PropertyGroup>
     <ZipadeeOutputFormat Condition="'$(ZipadeeOutputFormat)' == ''">Zip</ZipadeeOutputFormat>
     <ZipadeeCompressionLevel Condition="'$(ZipadeeCompressionLevel)' == ''">Normal</ZipadeeCompressionLevel>
+    <ZipadeeIncrementalBuild Condition="'$(ZipadeeIncrementalBuild)' == ''">true</ZipadeeIncrementalBuild>
 
-    <!-- 7-Zip's -mx= level. Not used for Tar (tar itself doesn't compress) or for GZip's tar
-         step (only the gzip step after it compresses). -->
+    <!-- 7-Zip's -mx= level. Not used for Tar (tar itself doesn't compress), for GZip's tar
+         step (only the gzip step after it compresses), or for Rar (uses its own -m0..-m5 scale
+         below). -->
     <ZipadeeCompressionLevelValue Condition="'$(ZipadeeCompressionLevel)' == 'Store'">0</ZipadeeCompressionLevelValue>
     <ZipadeeCompressionLevelValue Condition="'$(ZipadeeCompressionLevel)' == 'Fastest'">1</ZipadeeCompressionLevelValue>
     <ZipadeeCompressionLevelValue Condition="'$(ZipadeeCompressionLevel)' == 'Fast'">3</ZipadeeCompressionLevelValue>
@@ -36,17 +38,43 @@
     <ZipadeeCompressionLevelValue Condition="'$(ZipadeeCompressionLevel)' == 'Maximum'">7</ZipadeeCompressionLevelValue>
     <ZipadeeCompressionLevelValue Condition="'$(ZipadeeCompressionLevel)' == 'Ultra'">9</ZipadeeCompressionLevelValue>
 
+    <!-- RAR's -m switch only has 6 levels (0-5), a clean 1:1 match for our 6 named levels -
+         unlike 7-Zip's sparser 0/1/3/5/7/9 scale above. -->
+    <ZipadeeRarCompressionValue Condition="'$(ZipadeeCompressionLevel)' == 'Store'">0</ZipadeeRarCompressionValue>
+    <ZipadeeRarCompressionValue Condition="'$(ZipadeeCompressionLevel)' == 'Fastest'">1</ZipadeeRarCompressionValue>
+    <ZipadeeRarCompressionValue Condition="'$(ZipadeeCompressionLevel)' == 'Fast'">2</ZipadeeRarCompressionValue>
+    <ZipadeeRarCompressionValue Condition="'$(ZipadeeCompressionLevel)' == 'Normal'">3</ZipadeeRarCompressionValue>
+    <ZipadeeRarCompressionValue Condition="'$(ZipadeeCompressionLevel)' == 'Maximum'">4</ZipadeeRarCompressionValue>
+    <ZipadeeRarCompressionValue Condition="'$(ZipadeeCompressionLevel)' == 'Ultra'">5</ZipadeeRarCompressionValue>
+
     <!-- SFX (self-extracting .exe): 7-Zip's SFX modules can only self-extract a 7z payload, so
          this only applies to (and is only valid for) the SevenZip format - see
          ZipadeeValidateArchiveSettings. -->
     <ZipadeeSfxModulePath Condition="'$(ZipadeeSfxModulePath)' == ''">$(MSBuildThisFileDirectory)..\tools\7z.sfx</ZipadeeSfxModulePath>
     <ZipadeeSfxArg Condition="'$(ZipadeeCreateSfx)' == 'true'">-sfx&quot;$(ZipadeeSfxModulePath)&quot;</ZipadeeSfxArg>
 
+    <!-- WinRAR detection: no bundled encoder (proprietary format, see issue #6) - this shells
+         out to whatever copy of WinRAR the user already has installed and licensed themselves.
+         $(ZipadeeRarPath) lets that be overridden explicitly (e.g. a non-default install
+         location); otherwise checked in order: the well-known 64-bit and 32-bit install
+         locations, then the registry as a last resort for a custom install path. Left empty
+         (not an error here) if nothing is found - ZipadeeValidateArchiveSettings turns that into
+         a clear build error, but only when Rar is actually the selected format. -->
+    <ZipadeeRarExe Condition="'$(ZipadeeRarExe)' == '' and '$(ZipadeeRarPath)' != ''">$(ZipadeeRarPath)</ZipadeeRarExe>
+    <ZipadeeRarExe Condition="'$(ZipadeeRarExe)' == '' and Exists('$(ProgramFiles)\WinRAR\rar.exe')">$(ProgramFiles)\WinRAR\rar.exe</ZipadeeRarExe>
+    <ZipadeeRarExe Condition="'$(ZipadeeRarExe)' == '' and Exists('$(MSBuildProgramFiles32)\WinRAR\rar.exe')">$(MSBuildProgramFiles32)\WinRAR\rar.exe</ZipadeeRarExe>
+    <!-- HKLM\SOFTWARE\WinRAR / HKCU\SOFTWARE\WinRAR exist on a real install but carry no values
+         at all (they're WinRAR's own UI-preference keys) - the uninstall key's InstallLocation
+         is the actual source for a non-default install path. -->
+    <ZipadeeRarInstallDir Condition="'$(ZipadeeRarExe)' == ''">$([MSBuild]::GetRegistryValueFromView('HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\WinRAR archiver', 'InstallLocation', null, RegistryView.Registry64, RegistryView.Registry32))</ZipadeeRarInstallDir>
+    <ZipadeeRarExe Condition="'$(ZipadeeRarExe)' == '' and '$(ZipadeeRarInstallDir)' != ''">$(ZipadeeRarInstallDir)\rar.exe</ZipadeeRarExe>
+
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'Zip'">.zip</ZipadeeArchiveExtension>
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'SevenZip' and '$(ZipadeeCreateSfx)' == 'true'">.exe</ZipadeeArchiveExtension>
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'SevenZip' and '$(ZipadeeCreateSfx)' != 'true'">.7z</ZipadeeArchiveExtension>
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'Tar'">.tar</ZipadeeArchiveExtension>
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'GZip'">.tar.gz</ZipadeeArchiveExtension>
+    <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'Rar'">.rar</ZipadeeArchiveExtension>
 
     <!-- Absolute: the archive Exec below runs with WorkingDirectory set to the staging folder
          (see ZipadeeStagingDir), so a relative path here would resolve against that instead of
@@ -56,6 +84,20 @@
     <!-- GZip only: intermediate, uncompressed tar that the final gzip step compresses. Lives in
          obj\, already gitignored, so it's left behind rather than explicitly cleaned up. -->
     <ZipadeeIntermediateTarPath Condition="'$(ZipadeeIntermediateTarPath)' == ''">$(MSBuildProjectDirectory)\$(IntermediateOutputPath)$(MSBuildProjectName).tar</ZipadeeIntermediateTarPath>
+
+    <!-- What ZipadeeCreateArchive's own Outputs= (below) points MSBuild's staleness check at -
+         NOT the same thing as $(ZipadeeArchiveOutputPath) above, which is the real file the
+         target writes regardless of this setting. When ZipadeeIncrementalBuild is true this is
+         just that same real path, so the normal timestamp comparison applies. When false, this
+         is a fresh GUID-suffixed path that can never exist, so MSBuild always considers the
+         target out-of-date and reruns it every build.
+
+         Verified empirically which way this needs to go, since it's easy to get backwards: an
+         EMPTY Outputs value does not mean "always run" - MSBuild logs "Skipping target ... because
+         it has no outputs" and never runs it at all. A guaranteed-nonexistent (not empty) Outputs
+         value is what actually forces a rerun. -->
+    <ZipadeeCreateArchiveOutputs Condition="'$(ZipadeeIncrementalBuild)' == 'true'">$(ZipadeeArchiveOutputPath)</ZipadeeCreateArchiveOutputs>
+    <ZipadeeCreateArchiveOutputs Condition="'$(ZipadeeIncrementalBuild)' != 'true'">$(ZipadeeArchiveOutputPath).always-stale-$([System.Guid]::NewGuid())</ZipadeeCreateArchiveOutputs>
   </PropertyGroup>
 
   <!-- Runs unconditionally (no Inputs/Outputs) so an invalid Password+Tar/GZip combination is
@@ -66,6 +108,15 @@
            Text="Zipadee: a password is set (ZipadeePassword) but 7-Zip has no encryption support for the Tar or GZip output formats. Use Zip or SevenZip instead, or remove the password." />
     <Error Condition="'$(ZipadeeCreateSfx)' == 'true' and '$(ZipadeeOutputFormat)' != 'SevenZip'"
            Text="Zipadee: ZipadeeCreateSfx is set but 7-Zip's SFX modules can only self-extract a 7z payload (confirmed: a zip-format SFX .exe builds without error but fails to extract). Set ZipadeeOutputFormat to SevenZip, or remove ZipadeeCreateSfx." />
+    <Error Condition="'$(ZipadeeOutputFormat)' == 'Rar' and '$(ZipadeeRarExe)' == ''"
+           Text="Zipadee: ZipadeeOutputFormat is Rar but WinRAR wasn't found (checked ProgramFiles, ProgramFiles(x86), and the registry). Install WinRAR (winrar.com - the trial is fully functional indefinitely, no license needed to create archives), or set ZipadeeRarPath to rar.exe's location." />
+    <!-- Separate from the check above (rather than folded into one Exists-or-empty condition)
+         so an explicit-but-wrong ZipadeeRarPath gets its own clear message instead of quietly
+         matching the same "wasn't found" text used for auto-detection failing - confirmed while
+         testing that the empty-only check let a bad override path straight through to a
+         confusing generic MSB3073/exit-9009 error from Exec instead of either of these. -->
+    <Error Condition="'$(ZipadeeOutputFormat)' == 'Rar' and '$(ZipadeeRarExe)' != '' and !Exists('$(ZipadeeRarExe)')"
+           Text="Zipadee: ZipadeeRarExe resolved to '$(ZipadeeRarExe)', but no file exists there. Check ZipadeeRarPath if you set it explicitly." />
   </Target>
 
   <!-- Split out from ZipadeeCreateArchive (rather than inlined at its top) so its Inputs check
@@ -103,7 +154,7 @@
           DependsOnTargets="ZipadeeValidateArchiveSettings;ZipadeeResolveProjectReferenceOutputs"
           Condition="'$(DesignTimeBuild)' != 'true'"
           Inputs="@(None);@(Content);@(ZipadeeProjectOutputItem)"
-          Outputs="$(ZipadeeArchiveOutputPath)">
+          Outputs="$(ZipadeeCreateArchiveOutputs)">
 
     <!-- Files already in the project, or linked in from elsewhere on disk via %(Link) (VS's
          "Add Existing Item > Add as Link"), are archived under their project-relative path or
@@ -189,6 +240,17 @@
           WorkingDirectory="$(ZipadeeStagingDir)" />
     <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -tgzip -mx=$(ZipadeeCompressionLevelValue) &quot;$(ZipadeeArchiveOutputPath)&quot; &quot;$(ZipadeeIntermediateTarPath)&quot;"
           Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'GZip'" />
+
+    <!-- Rar: -hp<password> is a single switch encrypting both file contents and headers
+         (filenames) - simpler than Zip's -mem=AES256+-p or 7z's -p+-mhe=on pairs above. No SFX
+         support for Rar (the existing SFX+non-SevenZip check above already rejects it). -->
+    <Exec Command="&quot;$(ZipadeeRarExe)&quot; a -m$(ZipadeeRarCompressionValue) -hp%ZIPADEE_PASSWORD% -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
+          Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'Rar' and '$(ZipadeePassword)' != ''"
+          EnvironmentVariables="$(ZipadeePasswordEnv)"
+          WorkingDirectory="$(ZipadeeStagingDir)" />
+    <Exec Command="&quot;$(ZipadeeRarExe)&quot; a -m$(ZipadeeRarCompressionValue) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
+          Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'Rar' and '$(ZipadeePassword)' == ''"
+          WorkingDirectory="$(ZipadeeStagingDir)" />
 
     <Message Importance="high"
               Text="Zipadee: no files to archive - add files to the project (Add &gt; Existing Item) to produce an archive."
