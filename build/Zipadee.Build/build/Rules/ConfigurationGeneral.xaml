@@ -1,13 +1,24 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!-- Registered with Context="BrowseObject" (see Zipadee.Build.props) rather than "Project" -
-     these properties show up in the classic Properties tool window (F4) when the project node
-     is selected, not in a tabbed Project Properties designer. That tabbed designer appears to
-     be specific to the C#/VB/F# managed project system, not something a project with its own
-     custom `language` (like Zipadee's) gets access to just by registering a rule/capability. -->
-<Rule Name="ZipadeeArchive"
-      Description="Settings for the archive this project produces."
-      DisplayName="Archive"
+<!-- Populates the project's Properties page (the Properties command on the project node).
+
+     As with ConfigurationGeneralBrowseObject.xaml next to this file, the rule NAME is the part
+     that matters - CPS looks up the project's property page by the conventional name
+     "ConfigurationGeneral". The custom-project-type sample in microsoft/VSProjectSystem
+     (samples/WindowsScript .../Rules/general.xaml) uses exactly this name and pairs it with a
+     matching .browseobject rule, which is the pattern followed here.
+
+     Deliberately only declares Zipadee's own properties. "ConfigurationGeneral" is a rule other
+     components also read well-known properties from (OutputPath, TargetFramework, and friends);
+     declaring those here too would mean guessing at semantics this project doesn't own. -->
+<Rule Name="ConfigurationGeneral"
+      DisplayName="General"
+      Description="General"
+      PageTemplate="generic"
       xmlns="http://schemas.microsoft.com/build/2009/properties">
+
+  <Rule.Categories>
+    <Category Name="Archive" DisplayName="Archive" Description="Settings for the archive this project produces." />
+  </Rule.Categories>
 
   <Rule.DataSource>
     <DataSource Persistence="ProjectFile"
@@ -16,6 +27,7 @@
   </Rule.DataSource>
 
   <EnumProperty Name="ZipadeeOutputFormat"
+                Category="Archive"
                 DisplayName="Output format"
                 Description="The archive format to produce."
                 Default="Zip">
@@ -26,6 +38,7 @@
   </EnumProperty>
 
   <EnumProperty Name="ZipadeeCompressionLevel"
+                Category="Archive"
                 DisplayName="Compression level"
                 Description="How hard to compress. Ignored for Tar (tar itself doesn't compress)."
                 Default="Normal">
@@ -38,13 +51,15 @@
   </EnumProperty>
 
   <BoolProperty Name="ZipadeeCreateSfx"
+                Category="Archive"
                 DisplayName="Self-extracting (.exe)"
                 Description="Produces a self-extracting .exe instead of a plain archive. Only supported for the SevenZip format."
                 Default="False" />
 
   <StringProperty Name="ZipadeePassword"
-                   DisplayName="Password"
-                   Description="AES-256 password protection. Only supported for the Zip and SevenZip formats. Stored in the .user file, never in the project file.">
+                  Category="Archive"
+                  DisplayName="Password"
+                  Description="AES-256 password protection. Only supported for the Zip and SevenZip formats. Stored in the .user file, never in the project file.">
     <StringProperty.DataSource>
       <DataSource Persistence="UserFile" HasConfigurationCondition="False" />
     </StringProperty.DataSource>

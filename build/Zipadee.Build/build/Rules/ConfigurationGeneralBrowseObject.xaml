@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Populates the Properties tool window (F4) for the project node.
+
+     The rule NAME matters: CPS looks up the project node's browse object by the conventional
+     name "ConfigurationGeneralBrowseObject", not by whatever rule happens to be registered with
+     Context="BrowseObject". Both Microsoft's own managed project system
+     (GeneralBrowseObject.xaml in dotnet/project-system) and the custom-project-type sample in
+     microsoft/VSProjectSystem (samples/WindowsScript .../Rules/general.browseobject.xaml) use
+     exactly this name. An earlier attempt here used a custom rule name and silently showed
+     nothing at all - see the investigation notes on issue #4. -->
+<Rule Name="ConfigurationGeneralBrowseObject"
+      DisplayName="General"
+      Description="General"
+      PageTemplate="generic"
+      xmlns="http://schemas.microsoft.com/build/2009/properties">
+
+  <Rule.Categories>
+    <Category Name="Archive" DisplayName="Archive" Description="Settings for the archive this project produces." />
+    <Category Name="Misc" DisplayName="Misc" Description="Misc" />
+  </Rule.Categories>
+
+  <Rule.DataSource>
+    <DataSource Persistence="ProjectFile"
+                SourceOfDefaultValue="AfterContext"
+                HasConfigurationCondition="False" />
+  </Rule.DataSource>
+
+  <EnumProperty Name="ZipadeeOutputFormat"
+                Category="Archive"
+                DisplayName="Output format"
+                Description="The archive format to produce."
+                Default="Zip">
+    <EnumValue Name="Zip" DisplayName="Zip (.zip)" />
+    <EnumValue Name="SevenZip" DisplayName="7-Zip (.7z)" />
+    <EnumValue Name="Tar" DisplayName="Tar (.tar)" />
+    <EnumValue Name="GZip" DisplayName="Gzip-compressed tar (.tar.gz)" />
+  </EnumProperty>
+
+  <EnumProperty Name="ZipadeeCompressionLevel"
+                Category="Archive"
+                DisplayName="Compression level"
+                Description="How hard to compress. Ignored for Tar (tar itself doesn't compress)."
+                Default="Normal">
+    <EnumValue Name="Store" DisplayName="Store (no compression)" />
+    <EnumValue Name="Fastest" DisplayName="Fastest" />
+    <EnumValue Name="Fast" DisplayName="Fast" />
+    <EnumValue Name="Normal" DisplayName="Normal" />
+    <EnumValue Name="Maximum" DisplayName="Maximum" />
+    <EnumValue Name="Ultra" DisplayName="Ultra" />
+  </EnumProperty>
+
+  <BoolProperty Name="ZipadeeCreateSfx"
+                Category="Archive"
+                DisplayName="Self-extracting (.exe)"
+                Description="Produces a self-extracting .exe instead of a plain archive. Only supported for the SevenZip format."
+                Default="False" />
+
+  <StringProperty Name="ZipadeePassword"
+                  Category="Archive"
+                  DisplayName="Password"
+                  Description="AES-256 password protection. Only supported for the Zip and SevenZip formats. Stored in the .user file, never in the project file.">
+    <StringProperty.DataSource>
+      <DataSource Persistence="UserFile" HasConfigurationCondition="False" />
+    </StringProperty.DataSource>
+    <StringProperty.ValueEditors>
+      <ValueEditor EditorType="PasswordString" />
+    </StringProperty.ValueEditors>
+  </StringProperty>
+
+  <!-- Read-only, same as the two Microsoft rules this is modelled on. Also serves as a cheap
+       sanity check: if these show up in F4 but the Archive ones don't, the rule loaded and the
+       problem is with an individual property rather than the registration. -->
+  <StringProperty Name="FileName"
+                  Category="Misc"
+                  DisplayName="Project File"
+                  Description="Name of the project file."
+                  ReadOnly="True">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" PersistedName="MSBuildProjectFile" />
+    </StringProperty.DataSource>
+  </StringProperty>
+
+  <StringProperty Name="FullPath"
+                  Category="Misc"
+                  DisplayName="Full Path"
+                  Description="Location of the project file."
+                  ReadOnly="True">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" PersistedName="MSBuildProjectFullPath" />
+    </StringProperty.DataSource>
+  </StringProperty>
+
+</Rule>
