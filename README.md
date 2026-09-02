@@ -6,10 +6,15 @@ Think of it as a lightweight, in-solution alternative to a separate packaging sc
 
 > **Status:** not yet published to the Visual Studio Marketplace (tracked in [#16](https://github.com/Jonesie/zipadee/issues/16)). Until then, build the VSIX from source (see below) to try it.
 
+> **External tools required, per format** - none of them are bundled, and both are expected on `PATH` (neither installer adds itself there automatically - a manual step after installing):
+> - `Zip`, `SevenZip`, `Tar`, `GZip` — [7-Zip](https://www.7-zip.org/)'s command-line tool (`7z`).
+> - `Rar` — [WinRAR](https://www.rarlab.com/download.htm)'s command-line tool (`rar`).
+> - `Cab` — nothing extra; uses `makecab.exe`, built into every Windows install.
+
 ## Features
 
 - **Files, links, and project outputs** — add existing files directly, link to files elsewhere on disk, or reference another project in the solution and pull in its build output (with correct build ordering, for free, via standard MSBuild project references).
-- **Multiple archive formats** — Zip, 7-Zip (.7z), Tar, gzip-compressed tar (.tar.gz), Windows Cabinet (.cab), and RAR (.rar) using your own installed copy of WinRAR - RAR's format is proprietary, so unlike the others this one isn't bundled and needs WinRAR installed separately.
+- **Multiple archive formats** — Zip, 7-Zip (.7z), Tar, gzip-compressed tar (.tar.gz), Windows Cabinet (.cab), and RAR (.rar). None of the underlying tools are bundled - see the requirement above.
 - **Configurable compression** — from Store (no compression) through Ultra, one generic scale mapped to each format's own native settings (see [Compression level mapping](marketplace/overview.md#compression-level-mapping)).
 - **Password protection** — AES-256 encryption for the Zip, 7-Zip, and RAR formats, with header encryption (hides filenames too) applied automatically. The password lives in your local `.user` file, never in the shared project file.
 - **Self-extracting archives** — produce a self-extracting `.exe` (7-Zip format) that needs no archive tool to open.
@@ -66,4 +71,4 @@ This repo uses [GitFlow](https://github.com/gittower/git-flow-next):
 
 ## License
 
-Zipadee is licensed under [GPL-3.0](LICENSE). It bundles 7-Zip (LGPL / BSD 3-clause / BSD 2-clause) to perform the actual archiving.
+Zipadee is licensed under [GPL-3.0](LICENSE). It shells out to 7-Zip (LGPL / BSD 3-clause / BSD 2-clause) to perform the actual archiving - not bundled, see the requirement above.

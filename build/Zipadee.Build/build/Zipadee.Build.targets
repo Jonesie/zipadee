@@ -28,6 +28,14 @@
     <ZipadeeCompressionLevel Condition="'$(ZipadeeCompressionLevel)' == ''">Normal</ZipadeeCompressionLevel>
     <ZipadeeIncrementalBuild Condition="'$(ZipadeeIncrementalBuild)' == ''">true</ZipadeeIncrementalBuild>
 
+    <!-- Not bundled (see issue #20) - expected on PATH, like any other external tool this
+         project shells out to. Bare command name, not a full path: Exec runs through the shell,
+         which resolves it via PATH/PATHEXT. No detection chain and no override property (WinRAR,
+         below, works the same way) - a deliberate simplification, since these are expected to
+         just be normal installed tools. If it's not on PATH, the build fails with Exec's own
+         "not recognized" error rather than a bespoke Zipadee validation message. -->
+    <ZipadeeSevenZipExe Condition="'$(ZipadeeSevenZipExe)' == ''">7z</ZipadeeSevenZipExe>
+
     <!-- 7-Zip's -mx= level. Not used for Tar (tar itself doesn't compress), for GZip's tar
          step (only the gzip step after it compresses), or for Rar (uses its own -m0..-m5 scale
          below). -->
@@ -49,25 +57,21 @@
 
     <!-- SFX (self-extracting .exe): 7-Zip's SFX modules can only self-extract a 7z payload, so
          this only applies to (and is only valid for) the SevenZip format - see
-         ZipadeeValidateArchiveSettings. -->
-    <ZipadeeSfxModulePath Condition="'$(ZipadeeSfxModulePath)' == ''">$(MSBuildThisFileDirectory)..\tools\7z.sfx</ZipadeeSfxModulePath>
-    <ZipadeeSfxArg Condition="'$(ZipadeeCreateSfx)' == 'true'">-sfx&quot;$(ZipadeeSfxModulePath)&quot;</ZipadeeSfxArg>
+         ZipadeeValidateArchiveSettings. Bare -sfx (no module path) rather than pointing at a
+         bundled module (see issue #20) - 7-Zip defaults to 7zCon.sfx, found next to whichever
+         7z.exe is actually running, which every real full install ships. Console-style
+         self-extraction UX rather than the GUI-style 7z.sfx this project used to bundle
+         explicitly, but the feature itself needs no configuration either way. Note this relies
+         on a real 7z.exe (a full install) being what's on PATH - 7za.exe (the minimal "7-Zip
+         Extra" console build) doesn't support -sfx at all. -->
+    <ZipadeeSfxArg Condition="'$(ZipadeeCreateSfx)' == 'true'">-sfx</ZipadeeSfxArg>
 
-    <!-- WinRAR detection: no bundled encoder (proprietary format, see issue #6) - this shells
-         out to whatever copy of WinRAR the user already has installed and licensed themselves.
-         $(ZipadeeRarPath) lets that be overridden explicitly (e.g. a non-default install
-         location); otherwise checked in order: the well-known 64-bit and 32-bit install
-         locations, then the registry as a last resort for a custom install path. Left empty
-         (not an error here) if nothing is found - ZipadeeValidateArchiveSettings turns that into
-         a clear build error, but only when Rar is actually the selected format. -->
-    <ZipadeeRarExe Condition="'$(ZipadeeRarExe)' == '' and '$(ZipadeeRarPath)' != ''">$(ZipadeeRarPath)</ZipadeeRarExe>
-    <ZipadeeRarExe Condition="'$(ZipadeeRarExe)' == '' and Exists('$(ProgramFiles)\WinRAR\rar.exe')">$(ProgramFiles)\WinRAR\rar.exe</ZipadeeRarExe>
-    <ZipadeeRarExe Condition="'$(ZipadeeRarExe)' == '' and Exists('$(MSBuildProgramFiles32)\WinRAR\rar.exe')">$(MSBuildProgramFiles32)\WinRAR\rar.exe</ZipadeeRarExe>
-    <!-- HKLM\SOFTWARE\WinRAR / HKCU\SOFTWARE\WinRAR exist on a real install but carry no values
-         at all (they're WinRAR's own UI-preference keys) - the uninstall key's InstallLocation
-         is the actual source for a non-default install path. -->
-    <ZipadeeRarInstallDir Condition="'$(ZipadeeRarExe)' == ''">$([MSBuild]::GetRegistryValueFromView('HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\WinRAR archiver', 'InstallLocation', null, RegistryView.Registry64, RegistryView.Registry32))</ZipadeeRarInstallDir>
-    <ZipadeeRarExe Condition="'$(ZipadeeRarExe)' == '' and '$(ZipadeeRarInstallDir)' != ''">$(ZipadeeRarInstallDir)\rar.exe</ZipadeeRarExe>
+    <!-- WinRAR: no bundled encoder (proprietary format, see issue #6) - shells out to whatever
+         copy of WinRAR the user already has installed and licensed themselves. Same approach as
+         7-Zip (see issue #20): expected on PATH, bare command name, no detection chain and no
+         override property. If it's not on PATH, the build fails with Exec's own "not recognized"
+         error rather than a bespoke Zipadee validation message. -->
+    <ZipadeeRarExe Condition="'$(ZipadeeRarExe)' == ''">rar</ZipadeeRarExe>
 
     <!-- Cab detection: makecab.exe ships in every Windows install (System32), unlike RAR - no
          detection chain needed, just an override property for a nonstandard location. -->
@@ -141,15 +145,6 @@
            Text="Zipadee: a password is set (ZipadeePassword) but there's no encryption support for the Tar, GZip, or Cab output formats. Use Zip, SevenZip, or Rar instead, or remove the password." />
     <Error Condition="'$(ZipadeeCreateSfx)' == 'true' and '$(ZipadeeOutputFormat)' != 'SevenZip'"
            Text="Zipadee: ZipadeeCreateSfx is set but 7-Zip's SFX modules can only self-extract a 7z payload (confirmed: a zip-format SFX .exe builds without error but fails to extract). Set ZipadeeOutputFormat to SevenZip, or remove ZipadeeCreateSfx." />
-    <Error Condition="'$(ZipadeeOutputFormat)' == 'Rar' and '$(ZipadeeRarExe)' == ''"
-           Text="Zipadee: ZipadeeOutputFormat is Rar but WinRAR wasn't found (checked ProgramFiles, ProgramFiles(x86), and the registry). Install WinRAR (winrar.com - the trial is fully functional indefinitely, no license needed to create archives), or set ZipadeeRarPath to rar.exe's location." />
-    <!-- Separate from the check above (rather than folded into one Exists-or-empty condition)
-         so an explicit-but-wrong ZipadeeRarPath gets its own clear message instead of quietly
-         matching the same "wasn't found" text used for auto-detection failing - confirmed while
-         testing that the empty-only check let a bad override path straight through to a
-         confusing generic MSB3073/exit-9009 error from Exec instead of either of these. -->
-    <Error Condition="'$(ZipadeeOutputFormat)' == 'Rar' and '$(ZipadeeRarExe)' != '' and !Exists('$(ZipadeeRarExe)')"
-           Text="Zipadee: ZipadeeRarExe resolved to '$(ZipadeeRarExe)', but no file exists there. Check ZipadeeRarPath if you set it explicitly." />
     <Error Condition="'$(ZipadeeOutputFormat)' == 'Cab' and !Exists('$(ZipadeeMakeCabExe)')"
            Text="Zipadee: ZipadeeOutputFormat is Cab but makecab.exe wasn't found at '$(ZipadeeMakeCabExe)'. This ships with every Windows install (System32) - if you're on a nonstandard install (or a non-Windows build agent), set ZipadeeMakeCabExe to its location." />
   </Target>
