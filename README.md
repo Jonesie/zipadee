@@ -14,9 +14,20 @@ Think of it as a lightweight, in-solution alternative to a separate packaging sc
 - **Password protection** — AES-256 encryption for the Zip and 7-Zip formats, with 7-Zip's header encryption (hides filenames too) applied automatically. The password lives in your local `.user` file, never in the shared project file.
 - **Self-extracting archives** — produce a self-extracting `.exe` (7-Zip format) that needs no archive tool to open.
 - **Incremental builds** — the archive is only rebuilt when its contents actually change, not on every build.
+- **Configurable from the IDE** — the settings show up in the Properties window (F4) and on the project's General property page, or edit the project XML directly if you prefer.
 - Works with `dotnet build` / `dotnet restore` on the command line and in CI, not just inside Visual Studio.
 
-See [`marketplace/overview.md`](marketplace/overview.md) for the full MSBuild project file reference (every archive setting, with examples) and screenshots.
+## What it looks like
+
+An archive project sits in the solution alongside the projects it packages, with the files, links and project references it contains shown as its contents:
+
+![Solution Explorer showing a Zipadee Archive Project alongside a referenced console app project](marketplace/images/solution-explorer.png)
+
+Building it produces the archive as that project's output:
+
+![A completed build producing a self-extracting archive](marketplace/images/build-output.png)
+
+See [`marketplace/overview.md`](marketplace/overview.md) for the full MSBuild project file reference (every archive setting, with examples) and more screenshots.
 
 See the [issue tracker](https://github.com/Jonesie/zipadee/issues) for the current milestone plan (M0–M5) and known gaps.
 
