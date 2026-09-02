@@ -32,7 +32,10 @@ Archive settings (format, compression level, password, self-extracting) are set 
 
 ![Solution Explorer showing a Zipadee Archive Project alongside a referenced console app project](images/solution-explorer.png "Solution Explorer") 
 
+![The Project Properties](images/project-properties.png "Project Properties")
+
 ![The New Project dialog with Zipadee Archive Project selected](images/new-project-dialog.png "New Project dialog")
+
 
 ![A completed build producing a self-extracting archive](images/build-output.png "Build output")
 
@@ -127,6 +130,8 @@ with a `ConsoleZip.zparchproj.user` file alongside it setting `ZipadeePassword`,
 ## License
 
 Zipadee is licensed under [GPL-3.0](https://github.com/Jonesie/zipadee/blob/main/LICENSE). It bundles 7-Zip (LGPL / BSD 3-clause / BSD 2-clause) to perform the actual archiving.
+
+<a href="https://www.buymeacoffee.com/jonesie" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
 ## Feedback
 
