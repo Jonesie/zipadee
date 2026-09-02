@@ -1,5 +1,26 @@
 <Project>
 
+  <!-- Surfaces the archive settings in Visual Studio's UI, by extending the two rules VS already
+       ships for the project node:
+         ConfigurationGeneralPage         + Context="Project"      -> the General property page
+         ConfigurationGeneralBrowseObject + Context="BrowseObject" -> the Properties window (F4)
+
+       Declared in this .targets file rather than in Zipadee.Build.props on purpose. Inside VS
+       (but not under a plain `dotnet build`, where the file doesn't exist)
+       Microsoft.Managed.DesignTime.targets contributes ~47 further PropertyPageSchema items to
+       this project, including those two rules. Rule overrides are applied in MSBuild evaluation
+       order, and Microsoft's browse object declares OverrideMode="Replace" - so anything
+       declared from .props, which is imported first, gets replaced right back out again. A
+       package's .targets is imported late enough to land after them. See issue #4. -->
+  <ItemGroup>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\ConfigurationGeneralPage.xaml">
+      <Context>Project</Context>
+    </PropertyPageSchema>
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\ConfigurationGeneralBrowseObject.xaml">
+      <Context>BrowseObject</Context>
+    </PropertyPageSchema>
+  </ItemGroup>
+
   <!-- Computed here, not in Zipadee.Build.props, because $(OutDir) isn't defined yet when
        .props files are imported (before the SDK sets it based on Configuration/TargetFramework). -->
   <PropertyGroup>

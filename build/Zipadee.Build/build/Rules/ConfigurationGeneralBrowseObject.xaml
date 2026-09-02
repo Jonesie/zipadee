@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Adds the archive settings to the Properties tool window (F4) for the project node.
+
+     Two things make this work, and both are required:
+
+     1. The NAME must be "ConfigurationGeneralBrowseObject" - CPS looks the project node's
+        browse object up by that conventional name, not by whatever rule happens to be
+        registered under Context="BrowseObject".
+
+     2. OverrideMode="Extend", because Visual Studio already ships a rule of that exact name
+        (MSBuild\Microsoft\VisualStudio\Managed\GeneralBrowseObject.xaml), and it declares
+        OverrideMode="Replace". Inside VS - though NOT under a plain `dotnet build`, where the
+        file doesn't exist - Microsoft.Managed.DesignTime.targets contributes ~47 extra
+        PropertyPageSchema items to this project, that rule among them. Without Extend, the two
+        same-named rules simply collide.
+
+     Registration order matters just as much: overrides are applied in MSBuild evaluation order,
+     so this rule has to be declared AFTER Microsoft's. That's why the PropertyPageSchema items
+     live in Zipadee.Build.targets rather than Zipadee.Build.props - see the comment there.
+
+     Deliberately does not redeclare Microsoft's File Name / Full Path / Project Folder
+     properties: when extending, colliding properties take the extending rule's value, and
+     there's nothing to gain by restating them. See the notes on issue #4. -->
+<Rule Name="ConfigurationGeneralBrowseObject"
+      OverrideMode="Extend"
+      DisplayName="General"
+      PageTemplate="generic"
+      xmlns="http://schemas.microsoft.com/build/2009/properties">
+
+  <Rule.Categories>
+    <Category Name="Archive" DisplayName="Archive" Description="Settings for the archive this project produces." />
+  </Rule.Categories>
+
+  <!-- Rule-level DataSource. Every rule that demonstrably works - Microsoft's own
+       GeneralBrowseObject.xaml, dotnet/project-system's, and the WindowsScript custom
+       project type sample - declares one, and CPS binds the browse object through it. An
+       earlier revision here dropped it when switching to OverrideMode="Extend", which may well
+       be why that attempt showed nothing even with the rule name correct. -->
+  <Rule.DataSource>
+    <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+  </Rule.DataSource>
+
+  <EnumProperty Name="ZipadeeOutputFormat"
+                Category="Archive"
+                DisplayName="Output format"
+                Description="The archive format to produce."
+                Default="Zip">
+    <EnumProperty.DataSource>
+      <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+    </EnumProperty.DataSource>
+    <EnumValue Name="Zip" DisplayName="Zip (.zip)" />
+    <EnumValue Name="SevenZip" DisplayName="7-Zip (.7z)" />
+    <EnumValue Name="Tar" DisplayName="Tar (.tar)" />
+    <EnumValue Name="GZip" DisplayName="Gzip-compressed tar (.tar.gz)" />
+  </EnumProperty>
+
+  <EnumProperty Name="ZipadeeCompressionLevel"
+                Category="Archive"
+                DisplayName="Compression level"
+                Description="How hard to compress. Ignored for Tar (tar itself doesn't compress)."
+                Default="Normal">
+    <EnumProperty.DataSource>
+      <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+    </EnumProperty.DataSource>
+    <EnumValue Name="Store" DisplayName="Store (no compression)" />
+    <EnumValue Name="Fastest" DisplayName="Fastest" />
+    <EnumValue Name="Fast" DisplayName="Fast" />
+    <EnumValue Name="Normal" DisplayName="Normal" />
+    <EnumValue Name="Maximum" DisplayName="Maximum" />
+    <EnumValue Name="Ultra" DisplayName="Ultra" />
+  </EnumProperty>
+
+  <BoolProperty Name="ZipadeeCreateSfx"
+                Category="Archive"
+                DisplayName="Self-extracting (.exe)"
+                Description="Produces a self-extracting .exe instead of a plain archive. Only supported for the SevenZip format."
+                Default="False">
+    <BoolProperty.DataSource>
+      <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+    </BoolProperty.DataSource>
+  </BoolProperty>
+
+  <StringProperty Name="ZipadeePassword"
+                  Category="Archive"
+                  DisplayName="Password"
+                  Description="AES-256 password protection. Only supported for the Zip and SevenZip formats. Stored in the .user file, never in the project file.">
+    <StringProperty.DataSource>
+      <DataSource Persistence="UserFile" HasConfigurationCondition="False" />
+    </StringProperty.DataSource>
+    <StringProperty.ValueEditors>
+      <ValueEditor EditorType="PasswordString" />
+    </StringProperty.ValueEditors>
+  </StringProperty>
+
+</Rule>

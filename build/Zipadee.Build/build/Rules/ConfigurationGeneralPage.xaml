@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Adds the archive settings to the General page of the project's Properties UI.
+
+     Same mechanism as ConfigurationGeneralBrowseObject.xaml next to this file, applied to the
+     other surface: "ConfigurationGeneralPage" is the name of the rule Visual Studio ships for
+     the General property page (MSBuild\Microsoft\VisualStudio\Managed\ConfigurationGeneralPage.xaml,
+     registered with Context="Project"), so extending it puts these properties on a page that
+     already renders rather than hoping a brand new page gets surfaced - an earlier attempt that
+     registered a uniquely-named Context="Project" rule showed nothing at all.
+
+     As with the browse object, this only works because the PropertyPageSchema item for it is
+     declared in Zipadee.Build.targets rather than .props, so it is evaluated after Microsoft's.
+
+     No rule-level DisplayName/PageTemplate/DataSource here on purpose: when extending, any value
+     present on the extending rule wins, so omitting them leaves Microsoft's originals intact and
+     keeps this additive. -->
+<Rule Name="ConfigurationGeneralPage"
+      OverrideMode="Extend"
+      xmlns="http://schemas.microsoft.com/build/2009/properties">
+
+  <Rule.Categories>
+    <Category Name="Archive" DisplayName="Archive" Description="Settings for the archive this project produces." />
+  </Rule.Categories>
+
+  <!-- See the note in ConfigurationGeneralBrowseObject.xaml - every working example declares a
+       rule-level DataSource, so match that rather than relying on per-property ones alone. -->
+  <Rule.DataSource>
+    <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+  </Rule.DataSource>
+
+  <EnumProperty Name="ZipadeeOutputFormat"
+                Category="Archive"
+                DisplayName="Output format"
+                Description="The archive format to produce."
+                Default="Zip">
+    <EnumProperty.DataSource>
+      <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+    </EnumProperty.DataSource>
+    <EnumValue Name="Zip" DisplayName="Zip (.zip)" />
+    <EnumValue Name="SevenZip" DisplayName="7-Zip (.7z)" />
+    <EnumValue Name="Tar" DisplayName="Tar (.tar)" />
+    <EnumValue Name="GZip" DisplayName="Gzip-compressed tar (.tar.gz)" />
+  </EnumProperty>
+
+  <EnumProperty Name="ZipadeeCompressionLevel"
+                Category="Archive"
+                DisplayName="Compression level"
+                Description="How hard to compress. Ignored for Tar (tar itself doesn't compress)."
+                Default="Normal">
+    <EnumProperty.DataSource>
+      <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+    </EnumProperty.DataSource>
+    <EnumValue Name="Store" DisplayName="Store (no compression)" />
+    <EnumValue Name="Fastest" DisplayName="Fastest" />
+    <EnumValue Name="Fast" DisplayName="Fast" />
+    <EnumValue Name="Normal" DisplayName="Normal" />
+    <EnumValue Name="Maximum" DisplayName="Maximum" />
+    <EnumValue Name="Ultra" DisplayName="Ultra" />
+  </EnumProperty>
+
+  <BoolProperty Name="ZipadeeCreateSfx"
+                Category="Archive"
+                DisplayName="Self-extracting (.exe)"
+                Description="Produces a self-extracting .exe instead of a plain archive. Only supported for the SevenZip format."
+                Default="False">
+    <BoolProperty.DataSource>
+      <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+    </BoolProperty.DataSource>
+  </BoolProperty>
+
+  <StringProperty Name="ZipadeePassword"
+                  Category="Archive"
+                  DisplayName="Password"
+                  Description="AES-256 password protection. Only supported for the Zip and SevenZip formats. Stored in the .user file, never in the project file.">
+    <StringProperty.DataSource>
+      <DataSource Persistence="UserFile" HasConfigurationCondition="False" />
+    </StringProperty.DataSource>
+    <StringProperty.ValueEditors>
+      <ValueEditor EditorType="PasswordString" />
+    </StringProperty.ValueEditors>
+  </StringProperty>
+
+</Rule>
