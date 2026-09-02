@@ -69,12 +69,41 @@
     <ZipadeeRarInstallDir Condition="'$(ZipadeeRarExe)' == ''">$([MSBuild]::GetRegistryValueFromView('HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\WinRAR archiver', 'InstallLocation', null, RegistryView.Registry64, RegistryView.Registry32))</ZipadeeRarInstallDir>
     <ZipadeeRarExe Condition="'$(ZipadeeRarExe)' == '' and '$(ZipadeeRarInstallDir)' != ''">$(ZipadeeRarInstallDir)\rar.exe</ZipadeeRarExe>
 
+    <!-- Cab detection: makecab.exe ships in every Windows install (System32), unlike RAR - no
+         detection chain needed, just an override property for a nonstandard location. -->
+    <ZipadeeMakeCabExe Condition="'$(ZipadeeMakeCabExe)' == ''">$(SystemRoot)\System32\makecab.exe</ZipadeeMakeCabExe>
+
+    <!-- Optional settings-only DDF, found by convention rather than a property to set - same
+         base name as the project, in the project root (e.g. ConsoleZip.zparchproj looks for
+         ConsoleZip.ddf next to it). Only computed (and only ever non-empty) when it actually
+         exists, so every other use of this property can treat "empty" as "not present" without a
+         separate Exists() check. Only contains .Set directives (no file list) - the build appends
+         its own mandatory identity settings (CabinetNameTemplate/DiskDirectory1/SourceDir) and
+         the actual file list itself; see ZipadeeCreateArchive, which also excludes this file from
+         the cab's own contents even if it's tracked as a Content item (e.g. so it's visible in
+         Solution Explorer) - unlike every other format, where it's just an ordinary file that
+         follows the normal Content/None rule. -->
+    <ZipadeeCabDdfPath Condition="'$(ZipadeeOutputFormat)' == 'Cab' and Exists('$(MSBuildProjectDirectory)\$(MSBuildProjectName).ddf')">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\$(MSBuildProjectName).ddf'))</ZipadeeCabDdfPath>
+
+    <!-- Cab has no encryption support at all (validated below) and only two compression methods
+         - MSZIP (fast, modest ratio) for the two fastest levels, LZX (better ratio, needs more
+         memory) for the rest, with CompressionMemory (LZX's dictionary size, valid range 15-21)
+         scaling across Normal/Maximum/Ultra. -->
+    <ZipadeeCabCompressSetting Condition="'$(ZipadeeCompressionLevel)' == 'Store'">off</ZipadeeCabCompressSetting>
+    <ZipadeeCabCompressSetting Condition="'$(ZipadeeCompressionLevel)' != 'Store'">on</ZipadeeCabCompressSetting>
+    <ZipadeeCabCompressionTypeSetting Condition="'$(ZipadeeCompressionLevel)' == 'Fastest' or '$(ZipadeeCompressionLevel)' == 'Fast'">MSZIP</ZipadeeCabCompressionTypeSetting>
+    <ZipadeeCabCompressionTypeSetting Condition="'$(ZipadeeCompressionLevel)' == 'Normal' or '$(ZipadeeCompressionLevel)' == 'Maximum' or '$(ZipadeeCompressionLevel)' == 'Ultra'">LZX</ZipadeeCabCompressionTypeSetting>
+    <ZipadeeCabCompressionMemorySetting Condition="'$(ZipadeeCompressionLevel)' == 'Normal'">15</ZipadeeCabCompressionMemorySetting>
+    <ZipadeeCabCompressionMemorySetting Condition="'$(ZipadeeCompressionLevel)' == 'Maximum'">18</ZipadeeCabCompressionMemorySetting>
+    <ZipadeeCabCompressionMemorySetting Condition="'$(ZipadeeCompressionLevel)' == 'Ultra'">21</ZipadeeCabCompressionMemorySetting>
+
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'Zip'">.zip</ZipadeeArchiveExtension>
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'SevenZip' and '$(ZipadeeCreateSfx)' == 'true'">.exe</ZipadeeArchiveExtension>
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'SevenZip' and '$(ZipadeeCreateSfx)' != 'true'">.7z</ZipadeeArchiveExtension>
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'Tar'">.tar</ZipadeeArchiveExtension>
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'GZip'">.tar.gz</ZipadeeArchiveExtension>
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'Rar'">.rar</ZipadeeArchiveExtension>
+    <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'Cab'">.cab</ZipadeeArchiveExtension>
 
     <!-- Absolute: the archive Exec below runs with WorkingDirectory set to the staging folder
          (see ZipadeeStagingDir), so a relative path here would resolve against that instead of
@@ -84,6 +113,10 @@
     <!-- GZip only: intermediate, uncompressed tar that the final gzip step compresses. Lives in
          obj\, already gitignored, so it's left behind rather than explicitly cleaned up. -->
     <ZipadeeIntermediateTarPath Condition="'$(ZipadeeIntermediateTarPath)' == ''">$(MSBuildProjectDirectory)\$(IntermediateOutputPath)$(MSBuildProjectName).tar</ZipadeeIntermediateTarPath>
+    <!-- Cab only: the actual DDF fed to makecab.exe - either auto-generated in full, or the
+         convention-found DDF's settings (see ZipadeeCabDdfPath above) plus the build's own
+         mandatory/file-list lines appended. Lives in obj\, already gitignored. -->
+    <ZipadeeIntermediateDdfPath Condition="'$(ZipadeeIntermediateDdfPath)' == ''">$(MSBuildProjectDirectory)\$(IntermediateOutputPath)$(MSBuildProjectName).ddf</ZipadeeIntermediateDdfPath>
 
     <!-- What ZipadeeCreateArchive's own Outputs= (below) points MSBuild's staleness check at -
          NOT the same thing as $(ZipadeeArchiveOutputPath) above, which is the real file the
@@ -104,8 +137,8 @@
        always caught, even on a build where ZipadeeCreateArchive itself would otherwise be
        skipped as up-to-date. -->
   <Target Name="ZipadeeValidateArchiveSettings" BeforeTargets="Build">
-    <Error Condition="'$(ZipadeePassword)' != '' and ('$(ZipadeeOutputFormat)' == 'Tar' or '$(ZipadeeOutputFormat)' == 'GZip')"
-           Text="Zipadee: a password is set (ZipadeePassword) but 7-Zip has no encryption support for the Tar or GZip output formats. Use Zip or SevenZip instead, or remove the password." />
+    <Error Condition="'$(ZipadeePassword)' != '' and ('$(ZipadeeOutputFormat)' == 'Tar' or '$(ZipadeeOutputFormat)' == 'GZip' or '$(ZipadeeOutputFormat)' == 'Cab')"
+           Text="Zipadee: a password is set (ZipadeePassword) but there's no encryption support for the Tar, GZip, or Cab output formats. Use Zip, SevenZip, or Rar instead, or remove the password." />
     <Error Condition="'$(ZipadeeCreateSfx)' == 'true' and '$(ZipadeeOutputFormat)' != 'SevenZip'"
            Text="Zipadee: ZipadeeCreateSfx is set but 7-Zip's SFX modules can only self-extract a 7z payload (confirmed: a zip-format SFX .exe builds without error but fails to extract). Set ZipadeeOutputFormat to SevenZip, or remove ZipadeeCreateSfx." />
     <Error Condition="'$(ZipadeeOutputFormat)' == 'Rar' and '$(ZipadeeRarExe)' == ''"
@@ -117,6 +150,8 @@
          confusing generic MSB3073/exit-9009 error from Exec instead of either of these. -->
     <Error Condition="'$(ZipadeeOutputFormat)' == 'Rar' and '$(ZipadeeRarExe)' != '' and !Exists('$(ZipadeeRarExe)')"
            Text="Zipadee: ZipadeeRarExe resolved to '$(ZipadeeRarExe)', but no file exists there. Check ZipadeeRarPath if you set it explicitly." />
+    <Error Condition="'$(ZipadeeOutputFormat)' == 'Cab' and !Exists('$(ZipadeeMakeCabExe)')"
+           Text="Zipadee: ZipadeeOutputFormat is Cab but makecab.exe wasn't found at '$(ZipadeeMakeCabExe)'. This ships with every Windows install (System32) - if you're on a nonstandard install (or a non-Windows build agent), set ZipadeeMakeCabExe to its location." />
   </Target>
 
   <!-- Split out from ZipadeeCreateArchive (rather than inlined at its top) so its Inputs check
@@ -153,16 +188,23 @@
           AfterTargets="Build"
           DependsOnTargets="ZipadeeValidateArchiveSettings;ZipadeeResolveProjectReferenceOutputs"
           Condition="'$(DesignTimeBuild)' != 'true'"
-          Inputs="@(None);@(Content);@(ZipadeeProjectOutputItem)"
+          Inputs="@(Content);@(ZipadeeProjectOutputItem);$(ZipadeeCabDdfPath)"
           Outputs="$(ZipadeeCreateArchiveOutputs)">
 
-    <!-- Files already in the project, or linked in from elsewhere on disk via %(Link) (VS's
-         "Add Existing Item > Add as Link"), are archived under their project-relative path or
-         %(Link) path. None also counts alongside Content, since it's the more common
-         convention for non-compiled files elsewhere. -->
+    <!-- Only Content items get archived - None items are deliberately ignored, so a project
+         file can hold files it doesn't want in the archive without them silently ending up in
+         the output. Files already in the project, or linked in from elsewhere on disk via
+         %(Link) (VS's "Add Existing Item > Add as Link"), are archived under their
+         project-relative path or %(Link) path.
+
+         The Cab settings-only DDF (see ZipadeeCabDdfPath above) is excluded here even when
+         tracked as a Content item - unlike every other format, where it's just an ordinary file
+         and follows the rule above like anything else. %(FullPath) is used for the comparison
+         (batching over that metadata) rather than the item's Identity/Include spec, since the
+         latter varies with however the file happened to be included (relative path, %(Link), a
+         wildcard) while %(FullPath) is always the same canonical path. -->
     <ItemGroup>
-      <ZipadeeArchiveItem Include="@(None)" />
-      <ZipadeeArchiveItem Include="@(Content)" />
+      <ZipadeeArchiveItem Include="@(Content)" Condition="'$(ZipadeeCabDdfPath)' == '' or '%(FullPath)' != '$(ZipadeeCabDdfPath)'" />
     </ItemGroup>
     <ItemGroup>
       <ZipadeeArchiveItem>
@@ -252,6 +294,46 @@
           Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'Rar' and '$(ZipadeePassword)' == ''"
           WorkingDirectory="$(ZipadeeStagingDir)" />
 
+    <!-- Cab: makecab.exe needs a DDF listing settings and files rather than command-line
+         switches - there's no plain multi-file/wildcard form (that's strictly one source, one
+         destination). ZipadeeCabDdfPath, if found (see above), supplies only .Set directives (no
+         file list - see the comment on the ZipadeeArchiveItem ItemGroup above); this build always
+         appends its own computed settings first (so the user's file can override them), then its
+         own mandatory identity settings last (CabinetNameTemplate/DiskDirectory1/SourceDir -
+         forced last so nothing in the user's file can point the build at the wrong place), then
+         the file list itself, generated from the same @(ZipadeeArchiveItem)/staging mechanism
+         every other format uses. Each file list line repeats the relative path in both the source
+         and destination column - confirmed empirically that a single-column entry (source only)
+         silently flattens subfolder structure in the resulting .cab, while an explicit
+         destination column preserves it. -->
+    <ReadLinesFromFile File="$(ZipadeeCabDdfPath)"
+                        Condition="'$(ZipadeeCabDdfPath)' != ''">
+      <Output TaskParameter="Lines" ItemName="ZipadeeUserDdfLine" />
+    </ReadLinesFromFile>
+    <ItemGroup Condition="'$(ZipadeeOutputFormat)' == 'Cab'">
+      <!-- Without these, makecab.exe writes setup.inf/setup.rpt (a driver-install-era artifact,
+           irrelevant here) into whatever the current working directory happens to be - verified
+           this lands in the repo root during a normal build, not obj\ or bin\, since Exec here
+           has no WorkingDirectory override. -->
+      <ZipadeeDdfLine Include=".Set InfFileName=nul" />
+      <ZipadeeDdfLine Include=".Set RptFileName=nul" />
+      <ZipadeeDdfLine Include=".Set Compress=$(ZipadeeCabCompressSetting)" />
+      <ZipadeeDdfLine Include=".Set CompressionType=$(ZipadeeCabCompressionTypeSetting)" Condition="'$(ZipadeeCabCompressionTypeSetting)' != ''" />
+      <ZipadeeDdfLine Include=".Set CompressionMemory=$(ZipadeeCabCompressionMemorySetting)" Condition="'$(ZipadeeCabCompressionMemorySetting)' != ''" />
+      <ZipadeeDdfLine Include="@(ZipadeeUserDdfLine)" />
+      <ZipadeeDdfLine Include=".Set Cabinet=on" />
+      <ZipadeeDdfLine Include=".Set CabinetNameTemplate=$([System.IO.Path]::GetFileName('$(ZipadeeArchiveOutputPath)'))" />
+      <ZipadeeDdfLine Include=".Set DiskDirectory1=$([System.IO.Path]::GetDirectoryName('$(ZipadeeArchiveOutputPath)'))" />
+      <ZipadeeDdfLine Include=".Set SourceDir=$(ZipadeeStagingDir)" />
+      <ZipadeeDdfLine Include="@(ZipadeeArchiveItem->'&quot;%(ZipadeeArchivePath)&quot; &quot;%(ZipadeeArchivePath)&quot;')" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(ZipadeeIntermediateDdfPath)"
+                       Lines="@(ZipadeeDdfLine)"
+                       Overwrite="true"
+                       Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'Cab'" />
+    <Exec Command="&quot;$(ZipadeeMakeCabExe)&quot; /f &quot;$(ZipadeeIntermediateDdfPath)&quot;"
+          Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'Cab'" />
+
     <Message Importance="high"
               Text="Zipadee: no files to archive - add files to the project (Add &gt; Existing Item) to produce an archive."
               Condition="'@(ZipadeeArchiveItem)' == ''" />
@@ -259,6 +341,7 @@
     <ItemGroup>
       <FileWrites Include="$(ZipadeeArchiveOutputPath)" />
       <FileWrites Include="$(ZipadeeIntermediateTarPath)" Condition="'$(ZipadeeOutputFormat)' == 'GZip'" />
+      <FileWrites Include="$(ZipadeeIntermediateDdfPath)" Condition="'$(ZipadeeOutputFormat)' == 'Cab'" />
     </ItemGroup>
 
   </Target>
