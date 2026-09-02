@@ -7,25 +7,8 @@
     <AppendTargetFrameworkToOutputPath Condition="'$(AppendTargetFrameworkToOutputPath)' == ''">false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
 
-  <!-- Surfaces the archive settings in Visual Studio's UI. Two rules, because the two surfaces
-       are looked up separately and by CONVENTIONAL RULE NAME, not by whatever happens to be
-       registered under a given Context:
-         ConfigurationGeneral            + Context="Project"      -> the Properties page
-         ConfigurationGeneralBrowseObject + Context="BrowseObject" -> the Properties window (F4)
-       Registering a differently-named rule under either context silently shows nothing, which
-       is what an earlier attempt here did - see the investigation notes on issue #4.
-
-       Pure MSBuild items, so this works from a referenced package with no VSIX/CPS code. Note
-       that per CPS's rule Source Order, PropertyPageSchema items are only reliably picked up
-       when contributed by an imported package like this one, rather than declared inline in the
-       consuming project file. -->
-  <ItemGroup>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\ConfigurationGeneral.xaml">
-      <Context>Project</Context>
-    </PropertyPageSchema>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules\ConfigurationGeneralBrowseObject.xaml">
-      <Context>BrowseObject</Context>
-    </PropertyPageSchema>
-  </ItemGroup>
+  <!-- The PropertyPageSchema items that surface the archive settings in Visual Studio's UI are
+       deliberately NOT here - they're in Zipadee.Build.targets, because they have to be
+       evaluated after Microsoft's own rules. See the comment there. -->
 
 </Project>

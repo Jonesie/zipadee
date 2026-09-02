@@ -1,35 +1,42 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!-- Populates the Properties tool window (F4) for the project node.
+<!-- Adds the archive settings to the Properties tool window (F4) for the project node.
 
-     The rule NAME matters: CPS looks up the project node's browse object by the conventional
-     name "ConfigurationGeneralBrowseObject", not by whatever rule happens to be registered with
-     Context="BrowseObject". Both Microsoft's own managed project system
-     (GeneralBrowseObject.xaml in dotnet/project-system) and the custom-project-type sample in
-     microsoft/VSProjectSystem (samples/WindowsScript .../Rules/general.browseobject.xaml) use
-     exactly this name. An earlier attempt here used a custom rule name and silently showed
-     nothing at all - see the investigation notes on issue #4. -->
+     Two things make this work, and both are required:
+
+     1. The NAME must be "ConfigurationGeneralBrowseObject" - CPS looks the project node's
+        browse object up by that conventional name, not by whatever rule happens to be
+        registered under Context="BrowseObject".
+
+     2. OverrideMode="Extend", because Visual Studio already ships a rule of that exact name
+        (MSBuild\Microsoft\VisualStudio\Managed\GeneralBrowseObject.xaml), and it declares
+        OverrideMode="Replace". Inside VS - though NOT under a plain `dotnet build`, where the
+        file doesn't exist - Microsoft.Managed.DesignTime.targets contributes ~47 extra
+        PropertyPageSchema items to this project, that rule among them. Without Extend, the two
+        same-named rules simply collide.
+
+     Registration order matters just as much: overrides are applied in MSBuild evaluation order,
+     so this rule has to be declared AFTER Microsoft's. That's why the PropertyPageSchema items
+     live in Zipadee.Build.targets rather than Zipadee.Build.props - see the comment there.
+
+     Deliberately does not redeclare Microsoft's File Name / Full Path / Project Folder
+     properties: when extending, colliding properties take the extending rule's value, and
+     there's nothing to gain by restating them. See the notes on issue #4. -->
 <Rule Name="ConfigurationGeneralBrowseObject"
-      DisplayName="General"
-      Description="General"
-      PageTemplate="generic"
+      OverrideMode="Extend"
       xmlns="http://schemas.microsoft.com/build/2009/properties">
 
   <Rule.Categories>
     <Category Name="Archive" DisplayName="Archive" Description="Settings for the archive this project produces." />
-    <Category Name="Misc" DisplayName="Misc" Description="Misc" />
   </Rule.Categories>
-
-  <Rule.DataSource>
-    <DataSource Persistence="ProjectFile"
-                SourceOfDefaultValue="AfterContext"
-                HasConfigurationCondition="False" />
-  </Rule.DataSource>
 
   <EnumProperty Name="ZipadeeOutputFormat"
                 Category="Archive"
                 DisplayName="Output format"
                 Description="The archive format to produce."
                 Default="Zip">
+    <EnumProperty.DataSource>
+      <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+    </EnumProperty.DataSource>
     <EnumValue Name="Zip" DisplayName="Zip (.zip)" />
     <EnumValue Name="SevenZip" DisplayName="7-Zip (.7z)" />
     <EnumValue Name="Tar" DisplayName="Tar (.tar)" />
@@ -41,6 +48,9 @@
                 DisplayName="Compression level"
                 Description="How hard to compress. Ignored for Tar (tar itself doesn't compress)."
                 Default="Normal">
+    <EnumProperty.DataSource>
+      <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+    </EnumProperty.DataSource>
     <EnumValue Name="Store" DisplayName="Store (no compression)" />
     <EnumValue Name="Fastest" DisplayName="Fastest" />
     <EnumValue Name="Fast" DisplayName="Fast" />
@@ -53,7 +63,11 @@
                 Category="Archive"
                 DisplayName="Self-extracting (.exe)"
                 Description="Produces a self-extracting .exe instead of a plain archive. Only supported for the SevenZip format."
-                Default="False" />
+                Default="False">
+    <BoolProperty.DataSource>
+      <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+    </BoolProperty.DataSource>
+  </BoolProperty>
 
   <StringProperty Name="ZipadeePassword"
                   Category="Archive"
@@ -65,29 +79,6 @@
     <StringProperty.ValueEditors>
       <ValueEditor EditorType="PasswordString" />
     </StringProperty.ValueEditors>
-  </StringProperty>
-
-  <!-- Read-only, same as the two Microsoft rules this is modelled on. Also serves as a cheap
-       sanity check: if these show up in F4 but the Archive ones don't, the rule loaded and the
-       problem is with an individual property rather than the registration. -->
-  <StringProperty Name="FileName"
-                  Category="Misc"
-                  DisplayName="Project File"
-                  Description="Name of the project file."
-                  ReadOnly="True">
-    <StringProperty.DataSource>
-      <DataSource Persistence="ProjectFile" PersistedName="MSBuildProjectFile" />
-    </StringProperty.DataSource>
-  </StringProperty>
-
-  <StringProperty Name="FullPath"
-                  Category="Misc"
-                  DisplayName="Full Path"
-                  Description="Location of the project file."
-                  ReadOnly="True">
-    <StringProperty.DataSource>
-      <DataSource Persistence="ProjectFile" PersistedName="MSBuildProjectFullPath" />
-    </StringProperty.DataSource>
   </StringProperty>
 
 </Rule>

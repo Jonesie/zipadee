@@ -1,36 +1,35 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!-- Populates the project's Properties page (the Properties command on the project node).
+<!-- Adds the archive settings to the General page of the project's Properties UI.
 
-     As with ConfigurationGeneralBrowseObject.xaml next to this file, the rule NAME is the part
-     that matters - CPS looks up the project's property page by the conventional name
-     "ConfigurationGeneral". The custom-project-type sample in microsoft/VSProjectSystem
-     (samples/WindowsScript .../Rules/general.xaml) uses exactly this name and pairs it with a
-     matching .browseobject rule, which is the pattern followed here.
+     Same mechanism as ConfigurationGeneralBrowseObject.xaml next to this file, applied to the
+     other surface: "ConfigurationGeneralPage" is the name of the rule Visual Studio ships for
+     the General property page (MSBuild\Microsoft\VisualStudio\Managed\ConfigurationGeneralPage.xaml,
+     registered with Context="Project"), so extending it puts these properties on a page that
+     already renders rather than hoping a brand new page gets surfaced - an earlier attempt that
+     registered a uniquely-named Context="Project" rule showed nothing at all.
 
-     Deliberately only declares Zipadee's own properties. "ConfigurationGeneral" is a rule other
-     components also read well-known properties from (OutputPath, TargetFramework, and friends);
-     declaring those here too would mean guessing at semantics this project doesn't own. -->
-<Rule Name="ConfigurationGeneral"
-      DisplayName="General"
-      Description="General"
-      PageTemplate="generic"
+     As with the browse object, this only works because the PropertyPageSchema item for it is
+     declared in Zipadee.Build.targets rather than .props, so it is evaluated after Microsoft's.
+
+     No rule-level DisplayName/PageTemplate/DataSource here on purpose: when extending, any value
+     present on the extending rule wins, so omitting them leaves Microsoft's originals intact and
+     keeps this additive. -->
+<Rule Name="ConfigurationGeneralPage"
+      OverrideMode="Extend"
       xmlns="http://schemas.microsoft.com/build/2009/properties">
 
   <Rule.Categories>
     <Category Name="Archive" DisplayName="Archive" Description="Settings for the archive this project produces." />
   </Rule.Categories>
 
-  <Rule.DataSource>
-    <DataSource Persistence="ProjectFile"
-                SourceOfDefaultValue="AfterContext"
-                HasConfigurationCondition="False" />
-  </Rule.DataSource>
-
   <EnumProperty Name="ZipadeeOutputFormat"
                 Category="Archive"
                 DisplayName="Output format"
                 Description="The archive format to produce."
                 Default="Zip">
+    <EnumProperty.DataSource>
+      <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+    </EnumProperty.DataSource>
     <EnumValue Name="Zip" DisplayName="Zip (.zip)" />
     <EnumValue Name="SevenZip" DisplayName="7-Zip (.7z)" />
     <EnumValue Name="Tar" DisplayName="Tar (.tar)" />
@@ -42,6 +41,9 @@
                 DisplayName="Compression level"
                 Description="How hard to compress. Ignored for Tar (tar itself doesn't compress)."
                 Default="Normal">
+    <EnumProperty.DataSource>
+      <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+    </EnumProperty.DataSource>
     <EnumValue Name="Store" DisplayName="Store (no compression)" />
     <EnumValue Name="Fastest" DisplayName="Fastest" />
     <EnumValue Name="Fast" DisplayName="Fast" />
@@ -54,7 +56,11 @@
                 Category="Archive"
                 DisplayName="Self-extracting (.exe)"
                 Description="Produces a self-extracting .exe instead of a plain archive. Only supported for the SevenZip format."
-                Default="False" />
+                Default="False">
+    <BoolProperty.DataSource>
+      <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+    </BoolProperty.DataSource>
+  </BoolProperty>
 
   <StringProperty Name="ZipadeePassword"
                   Category="Archive"
