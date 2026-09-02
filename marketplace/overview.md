@@ -38,7 +38,7 @@ Archive settings (format, compression level, password, self-extracting) are set 
 
 ## Project file reference
 
-All archive settings are plain MSBuild properties, set directly in the `.zparchproj` file (or in a `.zparchproj.user` file for the password - see below). There is currently no in-IDE property page for these; edit the XML directly.
+All archive settings are plain MSBuild properties. You can set them either from Visual Studio - select the project node and use the **Properties** window (F4), or the **General** page of the project's **Properties** - or by editing the `.zparchproj` file directly. The password is the one exception to where it gets saved: it goes to a `.zparchproj.user` file rather than the project file (see below), whichever way you set it.
 
 | Property | Values | Default | Notes |
 |---|---|---|---|
@@ -85,7 +85,9 @@ Pull in another project's build output with a normal `ProjectReference` - the re
 
 ### Setting the password
 
-Since a password must never end up committed to source control, it isn't set in the `.zparchproj` file itself. Instead, create a `<ProjectFileName>.zparchproj.user` file next to it (already covered by Visual Studio's standard `.gitignore` template) with:
+Since a password must never end up committed to source control, it isn't stored in the `.zparchproj` file itself. Setting it in the **Properties** window handles this for you - Visual Studio writes it to a `<ProjectFileName>.zparchproj.user` file alongside the project, which the standard Visual Studio `.gitignore` template already excludes.
+
+To set it by hand instead, create that `.user` file yourself:
 
 ```xml
 <Project>
