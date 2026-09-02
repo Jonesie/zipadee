@@ -52,6 +52,7 @@
     <EnumValue Name="SevenZip" DisplayName="7-Zip (.7z)" />
     <EnumValue Name="Tar" DisplayName="Tar (.tar)" />
     <EnumValue Name="GZip" DisplayName="Gzip-compressed tar (.tar.gz)" />
+    <EnumValue Name="Rar" DisplayName="RAR (.rar)" />
   </EnumProperty>
 
   <EnumProperty Name="ZipadeeCompressionLevel"
@@ -83,7 +84,7 @@
   <StringProperty Name="ZipadeePassword"
                   Category="Archive"
                   DisplayName="Password"
-                  Description="AES-256 password protection. Only supported for the Zip and SevenZip formats. Stored in the .user file, never in the project file.">
+                  Description="AES-256 password protection. Only supported for the Zip, SevenZip, and Rar formats. Stored in the .user file, never in the project file.">
     <StringProperty.DataSource>
       <DataSource Persistence="UserFile" HasConfigurationCondition="False" />
     </StringProperty.DataSource>
@@ -91,5 +92,15 @@
       <ValueEditor EditorType="PasswordString" />
     </StringProperty.ValueEditors>
   </StringProperty>
+
+  <BoolProperty Name="ZipadeeIncrementalBuild"
+                Category="Archive"
+                DisplayName="Incremental build"
+                Description="Skip re-archiving when nothing changed. Turn off to force a fresh archive on every build."
+                Default="True">
+    <BoolProperty.DataSource>
+      <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+    </BoolProperty.DataSource>
+  </BoolProperty>
 
 </Rule>

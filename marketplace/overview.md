@@ -14,11 +14,11 @@ Think of it as a lightweight, in-solution alternative to a separate packaging sc
 ## Features
 
 - **Files, links, and project outputs** — add existing files directly, link to files elsewhere on disk, or reference another project in the solution and pull in its build output (with correct build ordering, for free, via standard MSBuild project references).
-- **Multiple archive formats** — Zip, 7-Zip (.7z), Tar, and gzip-compressed tar (.tar.gz).
+- **Multiple archive formats** — Zip, 7-Zip (.7z), Tar, gzip-compressed tar (.tar.gz), and RAR (.rar) using your own installed copy of WinRAR - RAR's format is proprietary, so unlike the others this one isn't bundled and needs WinRAR installed separately.
 - **Configurable compression** — from Store (no compression) through Ultra.
-- **Password protection** — AES-256 encryption for the Zip and 7-Zip formats, with 7-Zip's header encryption (hides filenames too) applied automatically. The password lives in your local `.user` file, never in the shared project file.
+- **Password protection** — AES-256 encryption for the Zip, 7-Zip, and RAR formats, with header encryption (hides filenames too) applied automatically. The password lives in your local `.user` file, never in the shared project file.
 - **Self-extracting archives** — produce a self-extracting `.exe` (7-Zip format) that needs no archive tool to open.
-- **Incremental builds** — the archive is only rebuilt when its contents actually change, not on every build.
+- **Incremental builds** — the archive is only rebuilt when its contents actually change, not on every build. Can be turned off per-project to force a fresh archive every time.
 - Works with `dotnet build` / `dotnet restore` on the command line and in CI, not just inside Visual Studio.
 
 ## Getting started
@@ -45,10 +45,12 @@ All archive settings are plain MSBuild properties. You can set them either from 
 
 | Property | Values | Default | Notes |
 |---|---|---|---|
-| `ZipadeeOutputFormat` | `Zip`, `SevenZip`, `Tar`, `GZip` | `Zip` | `GZip` produces a `.tar.gz` (tar, then gzip-compressed) since gzip alone can't hold more than one file. |
-| `ZipadeeCompressionLevel` | `Store`, `Fastest`, `Fast`, `Normal`, `Maximum`, `Ultra` | `Normal` | Maps to 7-Zip's `-mx=` levels. Ignored for `Tar` (tar itself doesn't compress). |
+| `ZipadeeOutputFormat` | `Zip`, `SevenZip`, `Tar`, `GZip`, `Rar` | `Zip` | `GZip` produces a `.tar.gz` (tar, then gzip-compressed) since gzip alone can't hold more than one file. `Rar` needs WinRAR installed - it's proprietary, so it isn't bundled the way the others are (auto-detected, or set `ZipadeeRarPath` below). |
+| `ZipadeeCompressionLevel` | `Store`, `Fastest`, `Fast`, `Normal`, `Maximum`, `Ultra` | `Normal` | Maps to 7-Zip's `-mx=` levels (or RAR's `-m` levels for the `Rar` format). Ignored for `Tar` (tar itself doesn't compress). |
 | `ZipadeeCreateSfx` | `true`, `false` | `false` | Produces a self-extracting `.exe` instead of a plain archive. **Only valid with `ZipadeeOutputFormat=SevenZip`** - 7-Zip's SFX modules can't self-extract any other format, and the build fails with a clear error if combined with one. |
-| `ZipadeePassword` | any string | *(none)* | AES-256 password protection. **Only valid with `Zip` or `SevenZip`** - Tar and GZip have no encryption support in 7-Zip, and the build fails if combined with one. For 7-Zip, filenames are also encrypted (`-mhe=on`) automatically whenever a password is set. |
+| `ZipadeePassword` | any string | *(none)* | AES-256 password protection. **Only valid with `Zip`, `SevenZip`, or `Rar`** - Tar and GZip have no encryption support, and the build fails if combined with one. Filenames are also encrypted automatically whenever a password is set (7-Zip's `-mhe=on`, or RAR's `-hp`, which does this as part of the same switch that sets the password). |
+| `ZipadeeIncrementalBuild` | `true`, `false` | `true` | Skip re-archiving when nothing changed. Set to `false` to force a fresh archive on every build. |
+| `ZipadeeRarPath` | a file path | *(auto-detected)* | Explicit path to `rar.exe`, for a non-default WinRAR install. Only needed if auto-detection (checking the usual install locations, then the registry) doesn't find it - the build fails with a clear error either way if `Rar` is selected and nothing is found. |
 
 ### Where to put the items being archived
 
@@ -113,7 +115,7 @@ A project that produces a password-protected, self-extracting 7-Zip archive at m
     <ZipadeeCreateSfx>true</ZipadeeCreateSfx>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Zipadee.Build" Version="0.1.0" />
+    <PackageReference Include="Zipadee.Build" Version="0.1.3" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Hello.txt" />
