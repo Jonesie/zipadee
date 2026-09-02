@@ -53,6 +53,7 @@
     <EnumValue Name="Tar" DisplayName="Tar (.tar)" />
     <EnumValue Name="GZip" DisplayName="Gzip-compressed tar (.tar.gz)" />
     <EnumValue Name="Rar" DisplayName="RAR (.rar)" />
+    <EnumValue Name="Cab" DisplayName="Windows Cabinet (.cab)" />
   </EnumProperty>
 
   <EnumProperty Name="ZipadeeCompressionLevel"

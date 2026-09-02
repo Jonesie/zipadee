@@ -1,6 +1,6 @@
 # Zipadee
 
-Zipadee adds a **Zipadee Archive Project** type to Visual Studio: a project whose "build output" is an archive file (zip, 7z, tar, or a self-extracting .exe) assembled from the files, linked files, and other projects' build outputs it contains.
+Zipadee adds a **Zipadee Archive Project** type to Visual Studio: a project whose "build output" is an archive file (zip, 7z, tar, cab, or a self-extracting .exe) assembled from the files, linked files, and other projects' build outputs it contains.
 
 Think of it as a lightweight, in-solution alternative to a separate packaging script - add a Zipadee project alongside the rest of your solution, add the files and project references you want bundled, and every build produces an up-to-date archive.
 
@@ -9,8 +9,8 @@ Think of it as a lightweight, in-solution alternative to a separate packaging sc
 ## Features
 
 - **Files, links, and project outputs** — add existing files directly, link to files elsewhere on disk, or reference another project in the solution and pull in its build output (with correct build ordering, for free, via standard MSBuild project references).
-- **Multiple archive formats** — Zip, 7-Zip (.7z), Tar, gzip-compressed tar (.tar.gz), and RAR (.rar) using your own installed copy of WinRAR - RAR's format is proprietary, so unlike the others this one isn't bundled and needs WinRAR installed separately.
-- **Configurable compression** — from Store (no compression) through Ultra.
+- **Multiple archive formats** — Zip, 7-Zip (.7z), Tar, gzip-compressed tar (.tar.gz), Windows Cabinet (.cab), and RAR (.rar) using your own installed copy of WinRAR - RAR's format is proprietary, so unlike the others this one isn't bundled and needs WinRAR installed separately.
+- **Configurable compression** — from Store (no compression) through Ultra, one generic scale mapped to each format's own native settings (see [Compression level mapping](marketplace/overview.md#compression-level-mapping)).
 - **Password protection** — AES-256 encryption for the Zip, 7-Zip, and RAR formats, with header encryption (hides filenames too) applied automatically. The password lives in your local `.user` file, never in the shared project file.
 - **Self-extracting archives** — produce a self-extracting `.exe` (7-Zip format) that needs no archive tool to open.
 - **Incremental builds** — the archive is only rebuilt when its contents actually change, not on every build. Can be turned off per-project to force a fresh archive every time.

@@ -7,14 +7,14 @@
 
 # Zipadee
 
-Zipadee adds a **Zipadee Archive Project** type to Visual Studio: a project whose "build output" is an archive file (zip, 7z, tar, or a self-extracting .exe) assembled from the files, linked files, and other projects' build outputs you add to it.
+Zipadee adds a **Zipadee Archive Project** type to Visual Studio: a project whose "build output" is an archive file (zip, 7z, tar, cab, or a self-extracting .exe) assembled from the files, linked files, and other projects' build outputs you add to it.
 
 Think of it as a lightweight, in-solution alternative to a separate packaging script - add a Zipadee project alongside the rest of your solution, add the files and project references you want bundled, and every build produces an up-to-date archive.
 
 ## Features
 
 - **Files, links, and project outputs** — add existing files directly, link to files elsewhere on disk, or reference another project in the solution and pull in its build output (with correct build ordering, for free, via standard MSBuild project references).
-- **Multiple archive formats** — Zip, 7-Zip (.7z), Tar, gzip-compressed tar (.tar.gz), and RAR (.rar) using your own installed copy of WinRAR - RAR's format is proprietary, so unlike the others this one isn't bundled and needs WinRAR installed separately.
+- **Multiple archive formats** — Zip, 7-Zip (.7z), Tar, gzip-compressed tar (.tar.gz), Windows Cabinet (.cab), and RAR (.rar) using your own installed copy of WinRAR - RAR's format is proprietary, so unlike the others this one isn't bundled and needs WinRAR installed separately.
 - **Configurable compression** — from Store (no compression) through Ultra.
 - **Password protection** — AES-256 encryption for the Zip, 7-Zip, and RAR formats, with header encryption (hides filenames too) applied automatically. The password lives in your local `.user` file, never in the shared project file.
 - **Self-extracting archives** — produce a self-extracting `.exe` (7-Zip format) that needs no archive tool to open.
@@ -45,16 +45,16 @@ All archive settings are plain MSBuild properties. You can set them either from 
 
 | Property | Values | Default | Notes |
 |---|---|---|---|
-| `ZipadeeOutputFormat` | `Zip`, `SevenZip`, `Tar`, `GZip`, `Rar` | `Zip` | `GZip` produces a `.tar.gz` (tar, then gzip-compressed) since gzip alone can't hold more than one file. `Rar` needs WinRAR installed - it's proprietary, so it isn't bundled the way the others are (auto-detected, or set `ZipadeeRarPath` below). |
-| `ZipadeeCompressionLevel` | `Store`, `Fastest`, `Fast`, `Normal`, `Maximum`, `Ultra` | `Normal` | Maps to 7-Zip's `-mx=` levels (or RAR's `-m` levels for the `Rar` format). Ignored for `Tar` (tar itself doesn't compress). |
+| `ZipadeeOutputFormat` | `Zip`, `SevenZip`, `Tar`, `GZip`, `Cab`, `Rar` | `Zip` | `GZip` produces a `.tar.gz` (tar, then gzip-compressed) since gzip alone can't hold more than one file. `Cab` produces a Windows Cabinet using the `makecab.exe` built into every Windows install - see [Cab files and DDF support](#cab-files-and-ddf-support) below. `Rar` needs WinRAR installed - it's proprietary, so it isn't bundled the way the others are (auto-detected, or set `ZipadeeRarPath` below). |
+| `ZipadeeCompressionLevel` | `Store`, `Fastest`, `Fast`, `Normal`, `Maximum`, `Ultra` | `Normal` | One generic scale across every format - each maps it to its own native settings differently. See [Compression level mapping](#compression-level-mapping) below. Ignored for `Tar` (tar itself doesn't compress). |
 | `ZipadeeCreateSfx` | `true`, `false` | `false` | Produces a self-extracting `.exe` instead of a plain archive. **Only valid with `ZipadeeOutputFormat=SevenZip`** - 7-Zip's SFX modules can't self-extract any other format, and the build fails with a clear error if combined with one. |
-| `ZipadeePassword` | any string | *(none)* | AES-256 password protection. **Only valid with `Zip`, `SevenZip`, or `Rar`** - Tar and GZip have no encryption support, and the build fails if combined with one. Filenames are also encrypted automatically whenever a password is set (7-Zip's `-mhe=on`, or RAR's `-hp`, which does this as part of the same switch that sets the password). |
+| `ZipadeePassword` | any string | *(none)* | AES-256 password protection. **Only valid with `Zip`, `SevenZip`, or `Rar`** - Tar, GZip, and Cab have no encryption support, and the build fails if combined with one. Filenames are also encrypted automatically whenever a password is set (7-Zip's `-mhe=on`, or RAR's `-hp`, which does this as part of the same switch that sets the password). |
 | `ZipadeeIncrementalBuild` | `true`, `false` | `true` | Skip re-archiving when nothing changed. Set to `false` to force a fresh archive on every build. |
 | `ZipadeeRarPath` | a file path | *(auto-detected)* | Explicit path to `rar.exe`, for a non-default WinRAR install. Only needed if auto-detection (checking the usual install locations, then the registry) doesn't find it - the build fails with a clear error either way if `Rar` is selected and nothing is found. |
 
 ### Where to put the items being archived
 
-Add files as regular `Content` or `None` items (Solution Explorer's **Add > Existing Item** uses `Content` for this project type):
+Add files as `Content` items (Solution Explorer's **Add > Existing Item** uses `Content` for this project type) - only `Content` items are archived. `None` items are deliberately left out, so the project file can hold a file it doesn't want in the archive itself - a settings-only DDF for the `Cab` format (see below) being the main example - without it silently ending up in the output:
 
 ```xml
 <ItemGroup>
@@ -101,6 +101,34 @@ To set it by hand instead, create that `.user` file yourself:
   </PropertyGroup>
 </Project>
 ```
+
+### Compression level mapping
+
+`ZipadeeCompressionLevel` is one generic 6-level scale shared across every format - it exists because none of the underlying tools agree with each other: 7-Zip has a sparse 0/1/3/5/7/9 scale, RAR a clean 0-5 range, and Cab only has two compression methods at all (MSZIP and LZX), with LZX taking a separate memory/dictionary-size setting rather than a level. `ZipadeeCompressionLevel` maps onto whichever of those the selected `ZipadeeOutputFormat` actually uses:
+
+| Level | Zip / SevenZip / GZip (7-Zip `-mx=`) | Rar (`-m`) | Cab |
+|---|---|---|---|
+| `Store` | 0 (no compression) | 0 (no compression) | `Compress=off` (no compression) |
+| `Fastest` | 1 | 1 | MSZIP |
+| `Fast` | 3 | 2 | MSZIP |
+| `Normal` | 5 | 3 | LZX, `CompressionMemory=15` |
+| `Maximum` | 7 | 4 | LZX, `CompressionMemory=18` |
+| `Ultra` | 9 | 5 | LZX, `CompressionMemory=21` |
+
+Ignored entirely for `Tar` - tar itself doesn't compress, and `GZip`'s tar step ahead of the actual gzip compression doesn't use it either (only the gzip step does, at the 7-Zip `-mx=` values above).
+
+### Cab files and DDF support
+
+`ZipadeeOutputFormat=Cab` produces a Windows Cabinet using `makecab.exe`, which ships with every Windows install - nothing extra to install, unlike `Rar`. Cab has two hard format limitations: no encryption support at all (a password fails the build, same as `Tar`/`GZip`), and no self-extracting option.
+
+With no further settings, Zipadee generates the whole DDF itself - the file list comes from the project's `Content` items, the same as every other format. For anything makecab supports beyond what Zipadee's own settings expose (for example `MaxDiskSize` for a multi-disk cabinet), add a DDF file **next to the project file, with the same base name** (a project called `MyArchive.zparchproj` looks for `MyArchive.ddf`) containing only `.Set` directives - **no file list**. If found, the build appends its own computed settings first (so yours can override them), then its own mandatory settings last, then the file list itself, generated automatically from the project's `Content` items - you don't list files in this DDF, only settings:
+
+```
+; MyArchive.ddf
+.Set MaxDiskSize=0
+```
+
+This file is always excluded from the cab's own contents, even if it's also added to the project as a `Content` item (e.g. so it shows up in Solution Explorer) - unlike every other format, where a file with this same name is just an ordinary file and follows the normal Content/None rule above.
 
 ### Full example
 
