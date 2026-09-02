@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageId>Zipadee.Build</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>Jonesie</Authors>
     <Description>Build-time logic for Zipadee Archive Projects: shells out to a bundled 7-Zip to produce the archive. Not intended for direct use - referenced automatically by the Zipadee Archive Project template.</Description>
     <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
