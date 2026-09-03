@@ -5,6 +5,7 @@
     <Description>Packages files, linked files, and other projects' build outputs into an archive (zip, 7z, tar, self-extracting exe).</Description>
     <ProjectType>Zipadee</ProjectType>
     <DefaultName>ZipadeeArchive</DefaultName>
+    <Icon>__TemplateIcon.ico</Icon>
   </TemplateData>
   <TemplateContent>
     <Project TargetFileName="$safeprojectname$.zparchproj" File="ProjectTemplate.zparchproj" ReplaceParameters="true">

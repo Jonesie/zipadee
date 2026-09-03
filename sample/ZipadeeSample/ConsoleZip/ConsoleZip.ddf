@@ -1,0 +1,76 @@
+; Settings-only DDF for the Cab format - picked up automatically because it's named after the
+; project (ConsoleZip.ddf next to ConsoleZip.zparchproj). Only .Set directives belong here - the
+; build appends the actual file list, and its own mandatory settings (marked below), automatically.
+; See "Cab files and DDF support" in marketplace/overview.md.
+;
+; Every documented makecab.exe directive is listed below, commented out, grouped by purpose - most
+; projects need none of these. One is left active as a working example.
+
+; --- Compression (Zipadee already computes these from ZipadeeCompressionLevel - override here) ---
+;.Set Compress=on                        ; ON|OFF - whether to compress at all
+;.Set CompressionType=LZX                ; MSZIP or LZX - LZX compresses better but is slower
+;.Set CompressionMemory=21               ; LZX only, 15-21 - higher = better ratio, more memory
+.Set CompressionType=MSZIP               ; active example: forces MSZIP regardless of
+                                          ; ZipadeeCompressionLevel - check obj\Debug\ConsoleZip.ddf
+                                          ; after building to see it merged with Zipadee's own
+                                          ; computed settings
+
+; --- Naming and location - Zipadee sets these itself and they are FORCED LAST, so anything set
+;     here is overridden; listed for reference only ---
+;.Set CabinetNameTemplate=MyArchive.cab  ; * is replaced by the cabinet/disk number when spanning
+;.Set DiskDirectory1=C:\output           ; output folder for disk 1
+;.Set Cabinet=on                         ; ON|OFF - turns cabinet creation on at all
+;.Set SourceDir=C:\staging               ; base folder the file list's relative paths resolve from
+
+; --- Multi-disk spanning (splits the archive across multiple cabinets/volumes - see issue #30) ---
+;.Set MaxDiskSize=0                      ; 0 = unlimited (single cabinet); or a byte count, or a
+                                          ; well-known size like 1440000 (1.44MB floppy)
+;.Set MaxDiskSize2=0                     ; per-disk override (MaxDiskSize<n>) for disk 2, 3, ...
+;.Set DiskDirectory2=C:\output\disk2     ; one DiskDirectory<n> per disk if spanning across folders
+;.Set DiskDirectoryTemplate=C:\output\disk*  ; * replaced by disk number
+;.Set CabinetName1=Archive1.cab          ; explicit per-disk cabinet name (else CabinetNameTemplate)
+;.Set DiskLabel1=Disk 1                  ; volume label shown during interactive extraction
+;.Set DiskLabelTemplate=Disk *           ; * replaced by disk number
+;.Set MaxDiskFileCount=0                 ; maximum files per disk
+
+; --- Folder/cabinet grouping thresholds (advanced - control how files are batched together for
+;     compression; a new "folder" starts a fresh compression stream) ---
+;.Set MaxCabinetSize=0                   ; maximum size of the current cabinet file
+;.Set CabinetFileCountThreshold=0        ; start a new cabinet after this many files
+;.Set FolderFileCountThreshold=0         ; start a new compression folder after this many files
+;.Set FolderSizeThreshold=0              ; start a new compression folder after this many bytes
+
+; --- Reserved space (advanced - reserves room in the cabinet for external metadata, e.g. a
+;     digital signature added afterward with signtool) ---
+;.Set ReservePerCabinetSize=0            ; base space to reserve per cabinet
+;.Set ReservePerFolderSize=0             ; additional space to reserve per folder
+;.Set ReservePerDataBlockSize=0          ; space to reserve in each data block
+
+; --- Diskette-specific (legacy - only relevant when actually targeting removable media) ---
+;.Set ClusterSize=512                    ; cluster size on the target diskette, in bytes
+
+; --- Reporting - Zipadee suppresses both by default (InfFileName=nul / RptFileName=nul); the
+;     computed defaults come before this file's content, so either can be re-enabled here ---
+;.Set InfFileName=setup.inf              ; generates a legacy driver-install-style .inf listing
+;.Set RptFileName=setup.rpt              ; generates a plain-text build report
+
+; --- INF customization (only relevant if InfFileName above is set to something other than nul) ---
+;.Set InfHeader=                         ; text to place at the top of the generated .inf
+;.Set InfFooter=                         ; text to place at the bottom of the generated .inf
+;.Set InfCommentString=;                 ; comment prefix used within the generated .inf
+;.Set InfDateFormat=yyyy-mm-dd           ; yyyy-mm-dd or mm/dd/yy
+;.Set InfSectionOrder=DCF                ; order of Disk/Cabinet/File sections (any of D, C, F)
+;.Set InfCabinetHeader=                  ; .inf "cabinet" section header text
+;.Set InfCabinetLineFormat=              ; .inf "cabinet" section per-line format string
+;.Set InfDiskHeader=                     ; .inf "disk" section header text
+;.Set InfDiskLineFormat=                 ; .inf "disk" section per-line format string
+;.Set InfFileHeader=                     ; .inf "file" section header text
+;.Set InfFileLineFormat=                 ; .inf "file" section per-line format string
+;.Set Inf_SomeParameter=                 ; sets a default value for a custom INF parameter
+
+; --- Miscellaneous ---
+;.Set UniqueFiles=on                     ; ON|OFF - reject duplicate destination file names
+;.Set DoNotCopyFiles=off                 ; ON|OFF - if ON, only validates directives, doesn't build
+;.Set MaxErrors=1                        ; maximum errors allowed before makecab aborts
+;.Set ChecksumWidth=8                    ; 1-8, max hex digits shown for the INF checksum parameter
+;.Set CompressedFileExtensionChar=_      ; last character used for compressed file extensions

@@ -13,6 +13,9 @@
     <Content Include="Hello.txt" />
     <Content Include="..\shared\LICENSE.txt" Link="docs\LICENSE.txt" />
     <Content Include="More\New Bitmap image.bmp" />
+    <!-- None, not Content - it's a Cab settings file, not something to put in the archive
+         itself. Only takes effect when ZipadeeOutputFormat=Cab. -->
+    <None Include="ConsoleZip.ddf" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ConsoleApp\ConsoleApp.csproj" />

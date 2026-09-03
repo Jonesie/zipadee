@@ -33,6 +33,13 @@
   <ItemGroup>
     <None Remove="ProjectTemplates\**\*.*" />
     <None Remove="TemplateDirs.pkgdef" />
+    <None Remove="Resources\**\*.*" />
+    <!-- VSIX package icon (Extensions Manager, Marketplace listing) - referenced by
+         source.extension.vsixmanifest's <Icon>. -->
+    <Content Include="Resources\Icon.png">
+      <IncludeInVSIX>true</IncludeInVSIX>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <!-- Modern search-index template asset (declared in source.extension.vsixmanifest). -->
     <Content Include="ProjectTemplates\ZipadeeArchiveProject.zip">
       <IncludeInVSIX>true</IncludeInVSIX>

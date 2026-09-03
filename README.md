@@ -1,3 +1,5 @@
+<img src="marketplace/images/zipadee-icon.png" alt="Zipadee" width="72" height="72" align="left" />
+
 # Zipadee
 
 Zipadee adds a **Zipadee Archive Project** type to Visual Studio: a project whose "build output" is an archive file (zip, 7z, tar, cab, or a self-extracting .exe) assembled from the files, linked files, and other projects' build outputs it contains.
@@ -72,3 +74,5 @@ This repo uses [GitFlow](https://github.com/gittower/git-flow-next):
 ## License
 
 Zipadee is licensed under [GPL-3.0](LICENSE). It shells out to 7-Zip (LGPL / BSD 3-clause / BSD 2-clause) to perform the actual archiving - not bundled, see the requirement above.
+
+<a href="https://www.buymeacoffee.com/jonesie" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>

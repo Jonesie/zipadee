@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="Zipadee.Vsix..e0e0d446-dd6d-4aac-8bbd-13debf9a4c62" Version="0.1.0" Language="en-US" Publisher="Jonesie" />
+    <Identity Id="Zipadee.Vsix..e0e0d446-dd6d-4aac-8bbd-13debf9a4c62" Version="0.1.8" Language="en-US" Publisher="Jonesie" />
     <DisplayName>Zipadee</DisplayName>
     <Description xml:space="preserve">Adds a project type that packages files, linked files, and other projects' build outputs into an archive (zip, 7z, tar, self-extracting exe).</Description>
+    <Icon>Resources\Icon.png</Icon>
   </Metadata>
   <Installation>
     <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0,)">
