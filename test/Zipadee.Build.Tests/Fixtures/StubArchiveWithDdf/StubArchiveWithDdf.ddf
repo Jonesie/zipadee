@@ -1,0 +1,8 @@
+; Settings-only DDF picked up by convention (same base name as the project).
+; CompressionType=MSZIP is a distinctive, easily-asserted override of whatever
+; ZipadeeCompressionLevel would otherwise compute - CabDdfTests checks the generated
+; obj\...\StubArchiveWithDdf.ddf actually contains this line.
+.Set CompressionType=MSZIP
+; Exercises the "ZipadeeMaxVolumeSize always overwrites a user DDF's own MaxDiskSize,
+; with a warning" scenario in CabDdfTests.
+.Set MaxDiskSize=0

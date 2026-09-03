@@ -5,4 +5,7 @@
   <Folder Name="/src/">
     <Project Path="src/Zipadee.Vsix/Zipadee.Vsix.csproj" />
   </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/Zipadee.Build.Tests/Zipadee.Build.Tests.csproj" />
+  </Folder>
 </Solution>

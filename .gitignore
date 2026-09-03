@@ -176,6 +176,9 @@ coverage*.json
 coverage*.xml
 coverage*.info
 
+# reportgenerator output (see .github/workflows/ci.yml's coverage summary step)
+CoverageReport/
+
 # Visual Studio code coverage results
 *.coverage
 *.coveragexml

@@ -1,0 +1,1 @@
+a file that lives outside StubArchive, referenced via %(Link)
