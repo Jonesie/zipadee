@@ -3,9 +3,17 @@
   publishManifest.json's "overview" field. See VsixPublisher's "assetFiles" in
   publishManifest.json for how the images/ referenced below get uploaded
   alongside this file.
+
+  The icon below is the one exception to that - it's a raw <img> tag (needed for
+  width/height/align, which Markdown's ![]() syntax can't express), and confirmed
+  empirically that the Marketplace's overview renderer only rewrites relative paths to
+  the gallery CDN for ![]() syntax, not raw HTML <img src="...">: the other four images
+  below (all ![]()) resolved correctly, this one 404'd against marketplace.visualstudio.com's
+  own domain instead. Pointed at a stable absolute GitHub URL instead of a relative path,
+  so it doesn't depend on the Marketplace's asset-copying at all.
 -->
 
-<img src="images/zipadee-icon.png" alt="Zipadee" width="72" height="72" align="left" />
+<img src="https://raw.githubusercontent.com/Jonesie/zipadee/main/marketplace/images/zipadee-icon.png" alt="Zipadee" width="72" height="72" align="left" />
 
 # Zipadee
 
