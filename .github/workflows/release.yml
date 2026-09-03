@@ -14,6 +14,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Full history (not just the tag's) needed for the "is this tag on main" ancestry
+          # check below - a shallow checkout wouldn't have origin/main's history available.
+          fetch-depth: 0
+
+      - name: Verify release tag is on main
+        run: |
+          git fetch origin main
+          git merge-base --is-ancestor HEAD origin/main
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "This release's tag is not reachable from main (target: ${{ github.event.release.target_commitish }}) - refusing to build/publish. Pick an existing tag on main when drafting the release, don't create a new one against another branch."
+            exit 1
+          }
+          Write-Output "Tag is on main - proceeding."
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -25,6 +39,23 @@ jobs:
 
       - name: Restore
         run: dotnet restore Zipadee.slnx
+
+      - name: Stamp VSIX version from release tag
+        run: |
+          $tag = "${{ github.event.release.tag_name }}"
+          $version = $tag -replace '^v', ''
+          if ($version -notmatch '^\d+\.\d+\.\d+(\.\d+)?$') {
+            Write-Error "Release tag '$tag' isn't a plain dotted version (e.g. v1.2.0) - VSIX version numbers can't have suffixes like '-beta'. Rename the tag/release and try again."
+            exit 1
+          }
+          $manifestPath = "src/Zipadee.Vsix/source.extension.vsixmanifest"
+          [xml]$manifest = Get-Content $manifestPath
+          $ns = New-Object System.Xml.XmlNamespaceManager($manifest.NameTable)
+          $ns.AddNamespace("v", "http://schemas.microsoft.com/developer/vsx-schema/2011")
+          $identity = $manifest.SelectSingleNode("//v:Identity", $ns)
+          $identity.SetAttribute("Version", $version)
+          $manifest.Save((Resolve-Path $manifestPath))
+          Write-Output "Stamped VSIX version: $version"
 
       - name: Build (Release)
         run: dotnet build Zipadee.slnx --configuration Release --no-restore
