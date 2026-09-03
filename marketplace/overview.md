@@ -21,6 +21,7 @@ Think of it as a lightweight, in-solution alternative to a separate packaging sc
 - **Password protection** — AES-256 encryption for the Zip, 7-Zip, and RAR formats, with header encryption (hides filenames too) applied automatically. The password lives in your local `.user` file, never in the shared project file.
 - **Self-extracting archives** — produce a self-extracting `.exe` (7-Zip format) that needs no archive tool to open.
 - **Incremental builds** — the archive is only rebuilt when its contents actually change, not on every build. Can be turned off per-project to force a fresh archive every time.
+- **Multi-volume archives** — split the output into multiple numbered files of a set maximum size, for the Zip, 7-Zip, RAR, and Cab formats.
 - Works with `dotnet build` / `dotnet restore` on the command line and in CI, not just inside Visual Studio.
 
 ## Getting started
@@ -36,12 +37,19 @@ Think of it as a lightweight, in-solution alternative to a separate packaging sc
 
 Archive settings (format, compression level, password, self-extracting) are set as MSBuild properties in the project file - see [Project file reference](#project-file-reference) below for the full list.
 
-![Solution Explorer showing a Zipadee Archive Project alongside a referenced console app project](images/solution-explorer.png "Solution Explorer") 
-
-![The Project Properties](images/project-properties.png "Project Properties")
+Start from **File > New > Project** and search for "Zip" or "Zipadee" - the **Zipadee Archive Project** template shows up alongside any other installed template. Give it a name and location like any other project; it's added to the solution as its own project, not a folder inside an existing one.
 
 ![The New Project dialog with Zipadee Archive Project selected](images/new-project-dialog.png "New Project dialog")
 
+Once created, the archive project sits in Solution Explorer next to the projects it packages. Add a **Project Reference** to pull in another project's build output - here `ConsoleZip` references `ConsoleApp`, shown under **Dependencies > Projects** - and it's rebuilt first, with its output added to the archive automatically. Existing files (`Hello.txt`) and linked files from elsewhere on disk (`docs\LICENSE.txt`) show up as ordinary content alongside it.
+
+![Solution Explorer showing a Zipadee Archive Project alongside a referenced console app project](images/solution-explorer.png "Solution Explorer") 
+
+Select the project node and open the **Properties** window (F4, or **View > Properties Window**) to configure the archive itself - format, compression level, password, self-extracting output, and volume size all live under the **Archive** category shown here. The same settings are also available on the project's General property page; either way, changes are written straight to the `.zparchproj` file (or its `.user` file, for the password).
+
+![The Project Properties](images/project-properties.png "Project Properties")
+
+Build the solution as usual - **Build > Build Solution**, or `dotnet build` - and the archive project builds like any other: referenced projects first, then the archive tool itself, visible in the **Output** window. The finished archive lands alongside the project's other build output (`bin\Debug\`, here), ready to ship.
 
 ![A completed build producing a self-extracting archive](images/build-output.png "Build output")
 
@@ -56,6 +64,7 @@ All archive settings are plain MSBuild properties. You can set them either from 
 | `ZipadeeCreateSfx` | `true`, `false` | `false` | Produces a self-extracting `.exe` instead of a plain archive (console-style extraction, since 7-Zip's default SFX module is used). **Only valid with `ZipadeeOutputFormat=SevenZip`** - 7-Zip's SFX modules can't self-extract any other format, and the build fails with a clear error if combined with one. |
 | `ZipadeePassword` | any string | *(none)* | AES-256 password protection. **Only valid with `Zip`, `SevenZip`, or `Rar`** - Tar, GZip, and Cab have no encryption support, and the build fails if combined with one. Filenames are also encrypted automatically whenever a password is set (7-Zip's `-mhe=on`, or RAR's `-hp`, which does this as part of the same switch that sets the password). |
 | `ZipadeeIncrementalBuild` | `true`, `false` | `true` | Skip re-archiving when nothing changed. Set to `false` to force a fresh archive on every build. |
+| `ZipadeeMaxVolumeSize` | a positive integer (bytes) | *(none, single file)* | Splits the archive into multiple numbered volumes of at most this many bytes each. **Valid for `Zip`, `SevenZip`, `Rar`, and `Cab`** - ignored (with a warning) for `Tar`/`GZip`, since neither format supports it. **Not valid combined with `ZipadeeCreateSfx`** - a self-extracting archive can't also be split, and the build fails with a clear error if both are set. For `Cab` specifically, the value **must be a multiple of 512** (`makecab.exe`'s own cluster-size requirement); see [Cab files and DDF support](#cab-files-and-ddf-support) below for how it interacts with a custom DDF. See [Multi-volume archives](#multi-volume-archives) below for per-format output naming and the incremental-build caveat. |
 
 ### Where to put the items being archived
 
@@ -135,7 +144,28 @@ With no further settings, Zipadee generates the whole DDF itself - the file list
 
 This file is always excluded from the cab's own contents, even if it's also added to the project as a `Content` item (e.g. so it shows up in Solution Explorer) - unlike every other format, where a file with this same name is just an ordinary file and follows the normal Content/None rule above.
 
+If `ZipadeeMaxVolumeSize` is also set, it always wins over a `MaxDiskSize` directive in your own DDF - a warning is logged so the override isn't a silent surprise. Leave `MaxDiskSize` out of the DDF entirely if you're using `ZipadeeMaxVolumeSize`, or vice versa.
+
 See `sample/ZipadeeSample/ConsoleCab` in the repo for a real, working example, including a DDF listing every documented `makecab.exe` directive.
+
+### Multi-volume archives
+
+Setting `ZipadeeMaxVolumeSize` splits the archive into multiple numbered files instead of one, once the content exceeds that size. Each format names its volumes differently - this is native tool behavior, not something Zipadee can normalize:
+
+| Format | Volume naming |
+|---|---|
+| `Zip` / `SevenZip` | `MyArchive.zip.001`, `MyArchive.zip.002`, ... (numbering appended after the extension) |
+| `Rar` | `MyArchive.part1.rar`, `MyArchive.part2.rar`, ... (numbering embedded before the extension) |
+| `Cab` | `MyArchive1.cab`, `MyArchive2.cab`, ... |
+
+A few things worth knowing:
+
+- **Not valid with `ZipadeeCreateSfx`.** 7-Zip's self-extracting modules don't support split archives - the build fails with a clear error rather than silently producing a broken `.exe`.
+- **Ignored for `Tar`/`GZip`**, with a warning - neither format has a native volume-splitting mechanism.
+- **`Cab` needs a multiple of 512** - `makecab.exe`'s own cluster-size requirement. A non-multiple fails the build with a clear error before `makecab.exe` gets a chance to reject it with a less obvious one.
+- **Interacts with incremental builds**: since the number of volumes produced depends on the content, not just whether it changed, Zipadee can't precisely track staleness across a volume count change - the archive is always rebuilt when `ZipadeeMaxVolumeSize` is set, regardless of `ZipadeeIncrementalBuild` (a warning is logged). Stale volumes left over from a previous build with a different `ZipadeeMaxVolumeSize` (or different content) are cleaned up automatically before each build, so you never end up with an extra leftover volume from an earlier run.
+
+See `sample/ZipadeeSample/ConsoleVolumes` in the repo for a real, working example that produces two `.zip` volumes.
 
 ### Full example
 

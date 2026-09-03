@@ -101,6 +101,15 @@
     <ZipadeeCabCompressionMemorySetting Condition="'$(ZipadeeCompressionLevel)' == 'Maximum'">18</ZipadeeCabCompressionMemorySetting>
     <ZipadeeCabCompressionMemorySetting Condition="'$(ZipadeeCompressionLevel)' == 'Ultra'">21</ZipadeeCabCompressionMemorySetting>
 
+    <!-- Cross-format volume splitting (issue #30) - a plain byte count, no unit suffix, matching
+         Cab's own MaxDiskSize format most directly; Zip/SevenZip/Rar each need their own switch
+         syntax translated from that same plain number (confirmed empirically: 7-Zip's -v defaults
+         to bytes with no suffix, but RAR's -v requires an explicit unit letter - "b" here). Empty
+         (no effect) for Tar/GZip, which have no splitting support at all - see
+         ZipadeeValidateArchiveSettings for the warning when set there anyway. -->
+    <ZipadeeMaxVolumeSizeArg Condition="'$(ZipadeeMaxVolumeSize)' != '' and ('$(ZipadeeOutputFormat)' == 'Zip' or '$(ZipadeeOutputFormat)' == 'SevenZip')">-v$(ZipadeeMaxVolumeSize)</ZipadeeMaxVolumeSizeArg>
+    <ZipadeeMaxVolumeSizeArg Condition="'$(ZipadeeMaxVolumeSize)' != '' and '$(ZipadeeOutputFormat)' == 'Rar'">-v$(ZipadeeMaxVolumeSize)b</ZipadeeMaxVolumeSizeArg>
+
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'Zip'">.zip</ZipadeeArchiveExtension>
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'SevenZip' and '$(ZipadeeCreateSfx)' == 'true'">.exe</ZipadeeArchiveExtension>
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'SevenZip' and '$(ZipadeeCreateSfx)' != 'true'">.7z</ZipadeeArchiveExtension>
@@ -113,6 +122,29 @@
          (see ZipadeeStagingDir), so a relative path here would resolve against that instead of
          $(OutDir). -->
     <ZipadeeArchiveOutputPath Condition="'$(ZipadeeArchiveOutputPath)' == ''">$(MSBuildProjectDirectory)\$(OutDir)$(MSBuildProjectName)$(ZipadeeArchiveExtension)</ZipadeeArchiveOutputPath>
+
+    <!-- Cab's CabinetNameTemplate needs a numbering placeholder (*) whenever spanning might
+         happen - confirmed empirically that a non-templated name silently produces a corrupt,
+         unextractable cab once content exceeds the disk size, with no error at all. Safe to
+         switch unconditionally otherwise (single-disk output is unaffected either way), but only
+         actually adds the placeholder when ZipadeeMaxVolumeSize is set, keeping the default
+         (unlimited, single-file) case's output name exactly as before. Must come after
+         $(ZipadeeArchiveOutputPath) above - MSBuild properties resolve top-to-bottom, so a
+         forward-reference here would silently evaluate against an empty string instead (confirmed
+         the hard way: this originally sat above ZipadeeArchiveOutputPath and produced "1.cab"
+         instead of "test1.cab" as a result).
+
+         The placeholder is written as %2a, not a literal *: this property's value later gets
+         interpolated into a ZipadeeDdfLine item's Include attribute below, and MSBuild treats any
+         Include value containing an unescaped * or ? as a filesystem glob to expand against disk -
+         not literal text. A literal * here made the whole ".Set CabinetNameTemplate=..." line
+         silently disappear from the generated DDF with no error (nothing on disk matched the
+         "glob"), while every other line rendered fine. %2a survives property/item evaluation as
+         escaped text and is un-escaped back to a real * only when the item is finally used as a
+         string (e.g. written to the DDF file), which is exactly what's needed here. -->
+    <ZipadeeCabCabinetNameTemplate Condition="'$(ZipadeeMaxVolumeSize)' == ''">$([System.IO.Path]::GetFileName('$(ZipadeeArchiveOutputPath)'))</ZipadeeCabCabinetNameTemplate>
+    <ZipadeeCabCabinetNameTemplate Condition="'$(ZipadeeMaxVolumeSize)' != ''">$([System.IO.Path]::GetFileNameWithoutExtension('$(ZipadeeArchiveOutputPath)'))%2a$([System.IO.Path]::GetExtension('$(ZipadeeArchiveOutputPath)'))</ZipadeeCabCabinetNameTemplate>
+
     <ZipadeeStagingDir Condition="'$(ZipadeeStagingDir)' == ''">$(MSBuildProjectDirectory)\$(IntermediateOutputPath)zipadee-stage\</ZipadeeStagingDir>
     <!-- GZip only: intermediate, uncompressed tar that the final gzip step compresses. Lives in
          obj\, already gitignored, so it's left behind rather than explicitly cleaned up. -->
@@ -145,8 +177,23 @@
            Text="Zipadee: a password is set (ZipadeePassword) but there's no encryption support for the Tar, GZip, or Cab output formats. Use Zip, SevenZip, or Rar instead, or remove the password." />
     <Error Condition="'$(ZipadeeCreateSfx)' == 'true' and '$(ZipadeeOutputFormat)' != 'SevenZip'"
            Text="Zipadee: ZipadeeCreateSfx is set but 7-Zip's SFX modules can only self-extract a 7z payload (confirmed: a zip-format SFX .exe builds without error but fails to extract). Set ZipadeeOutputFormat to SevenZip, or remove ZipadeeCreateSfx." />
+    <!-- Confirmed empirically: 7-Zip accepts -sfx and -v together without erroring, but produces
+         a broken result - the .exe is just the empty SFX stub (no error, no warning from 7-Zip
+         itself), with the actual archive data split into separately-numbered volumes instead. -->
+    <Error Condition="'$(ZipadeeCreateSfx)' == 'true' and '$(ZipadeeMaxVolumeSize)' != ''"
+           Text="Zipadee: ZipadeeCreateSfx and ZipadeeMaxVolumeSize can't be combined - 7-Zip accepts both together without erroring, but the result is broken (the .exe ends up being just the empty SFX stub, with the real archive data split into separate numbered volumes instead). Remove one or the other." />
     <Error Condition="'$(ZipadeeOutputFormat)' == 'Cab' and !Exists('$(ZipadeeMakeCabExe)')"
            Text="Zipadee: ZipadeeOutputFormat is Cab but makecab.exe wasn't found at '$(ZipadeeMakeCabExe)'. This ships with every Windows install (System32) - if you're on a nonstandard install (or a non-Windows build agent), set ZipadeeMakeCabExe to its location." />
+    <Error Condition="'$(ZipadeeMaxVolumeSize)' != '' and !$([System.Text.RegularExpressions.Regex]::IsMatch('$(ZipadeeMaxVolumeSize)', '^[0-9]+$'))"
+           Text="Zipadee: ZipadeeMaxVolumeSize is set to '$(ZipadeeMaxVolumeSize)', but it must be a plain positive integer - a byte count, with no unit suffix like 'k' or 'm'." />
+    <!-- Confirmed empirically: makecab hard-rejects a MaxDiskSize that isn't a multiple of
+         ClusterSize (512 by default) with its own error, rather than rounding or ignoring it. -->
+    <Error Condition="'$(ZipadeeMaxVolumeSize)' != '' and '$(ZipadeeOutputFormat)' == 'Cab' and $([MSBuild]::Modulo($(ZipadeeMaxVolumeSize), 512)) != 0"
+           Text="Zipadee: ZipadeeMaxVolumeSize ($(ZipadeeMaxVolumeSize)) must be a multiple of 512 for the Cab format (makecab's default cluster size) - try a round number of KB/MB, e.g. 1440000 for a 1.44MB floppy." />
+    <Warning Condition="'$(ZipadeeMaxVolumeSize)' != '' and ('$(ZipadeeOutputFormat)' == 'Tar' or '$(ZipadeeOutputFormat)' == 'GZip')"
+             Text="Zipadee: ZipadeeMaxVolumeSize is set but ignored for the Tar and GZip formats - neither has any volume-splitting support. Remove it, or switch to Zip, SevenZip, Rar, or Cab." />
+    <Warning Condition="'$(ZipadeeMaxVolumeSize)' != '' and '$(ZipadeeIncrementalBuild)' == 'true' and '$(ZipadeeOutputFormat)' != 'Tar' and '$(ZipadeeOutputFormat)' != 'GZip'"
+             Text="Zipadee: ZipadeeMaxVolumeSize splits the archive into multiple numbered files, which incremental build's staleness check can't track precisely - the archive will be rebuilt on every build regardless of ZipadeeIncrementalBuild. Safe (never serves a stale archive), just not optimally fast." />
   </Target>
 
   <!-- Split out from ZipadeeCreateArchive (rather than inlined at its top) so its Inputs check
@@ -227,6 +274,16 @@
 
     <Delete Files="$(ZipadeeArchiveOutputPath)" Condition="Exists('$(ZipadeeArchiveOutputPath)')" />
 
+    <!-- Volume-split output (ZipadeeMaxVolumeSize) doesn't produce $(ZipadeeArchiveOutputPath)
+         itself, so the Delete above never catches it - clean up any volumes left over from a
+         previous build here instead, covering both naming conventions in use across formats:
+         name.ext.NNN (Zip/SevenZip) and name*.ext, e.g. name.partN.ext or nameN.ext (Rar/Cab). -->
+    <ItemGroup Condition="'$(ZipadeeMaxVolumeSize)' != ''">
+      <ZipadeeStaleVolumeFile Include="$(ZipadeeArchiveOutputPath).*" />
+      <ZipadeeStaleVolumeFile Include="$([System.IO.Path]::GetDirectoryName('$(ZipadeeArchiveOutputPath)'))\$([System.IO.Path]::GetFileNameWithoutExtension('$(ZipadeeArchiveOutputPath)'))*$([System.IO.Path]::GetExtension('$(ZipadeeArchiveOutputPath)'))" />
+    </ItemGroup>
+    <Delete Files="@(ZipadeeStaleVolumeFile)" Condition="'$(ZipadeeMaxVolumeSize)' != ''" />
+
     <!-- The password is passed as an environment variable and referenced as a %-placeholder in
          the command text, rather than embedded directly in it - MSBuild's Exec task always
          echoes its Command text to the build log (which for a PR/CI build gets persisted and
@@ -242,11 +299,11 @@
 
     <!-- Zip: AES-256 needs -mem=AES256 explicitly, since 7-Zip's zip writer otherwise defaults
          to the weak, legacy ZipCrypto method. -->
-    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -tzip -mx=$(ZipadeeCompressionLevelValue) -mem=AES256 -p%ZIPADEE_PASSWORD% -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
+    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -tzip -mx=$(ZipadeeCompressionLevelValue) -mem=AES256 -p%ZIPADEE_PASSWORD% $(ZipadeeMaxVolumeSizeArg) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
           Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'Zip' and '$(ZipadeePassword)' != ''"
           EnvironmentVariables="$(ZipadeePasswordEnv)"
           WorkingDirectory="$(ZipadeeStagingDir)" />
-    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -tzip -mx=$(ZipadeeCompressionLevelValue) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
+    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -tzip -mx=$(ZipadeeCompressionLevelValue) $(ZipadeeMaxVolumeSizeArg) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
           Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'Zip' and '$(ZipadeePassword)' == ''"
           WorkingDirectory="$(ZipadeeStagingDir)" />
 
@@ -255,11 +312,11 @@
          is set, since 7z is the one format here that supports it. $(ZipadeeSfxArg) (empty
          unless ZipadeeCreateSfx is set) prepends the bundled SFX module, producing a
          self-extracting .exe instead of a plain .7z - see ZipadeeArchiveExtension above. -->
-    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -t7z -mx=$(ZipadeeCompressionLevelValue) -mhe=on -p%ZIPADEE_PASSWORD% $(ZipadeeSfxArg) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
+    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -t7z -mx=$(ZipadeeCompressionLevelValue) -mhe=on -p%ZIPADEE_PASSWORD% $(ZipadeeSfxArg) $(ZipadeeMaxVolumeSizeArg) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
           Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'SevenZip' and '$(ZipadeePassword)' != ''"
           EnvironmentVariables="$(ZipadeePasswordEnv)"
           WorkingDirectory="$(ZipadeeStagingDir)" />
-    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -t7z -mx=$(ZipadeeCompressionLevelValue) $(ZipadeeSfxArg) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
+    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -t7z -mx=$(ZipadeeCompressionLevelValue) $(ZipadeeSfxArg) $(ZipadeeMaxVolumeSizeArg) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
           Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'SevenZip' and '$(ZipadeePassword)' == ''"
           WorkingDirectory="$(ZipadeeStagingDir)" />
 
@@ -281,11 +338,11 @@
     <!-- Rar: -hp<password> is a single switch encrypting both file contents and headers
          (filenames) - simpler than Zip's -mem=AES256+-p or 7z's -p+-mhe=on pairs above. No SFX
          support for Rar (the existing SFX+non-SevenZip check above already rejects it). -->
-    <Exec Command="&quot;$(ZipadeeRarExe)&quot; a -m$(ZipadeeRarCompressionValue) -hp%ZIPADEE_PASSWORD% -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
+    <Exec Command="&quot;$(ZipadeeRarExe)&quot; a -m$(ZipadeeRarCompressionValue) -hp%ZIPADEE_PASSWORD% $(ZipadeeMaxVolumeSizeArg) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
           Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'Rar' and '$(ZipadeePassword)' != ''"
           EnvironmentVariables="$(ZipadeePasswordEnv)"
           WorkingDirectory="$(ZipadeeStagingDir)" />
-    <Exec Command="&quot;$(ZipadeeRarExe)&quot; a -m$(ZipadeeRarCompressionValue) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
+    <Exec Command="&quot;$(ZipadeeRarExe)&quot; a -m$(ZipadeeRarCompressionValue) $(ZipadeeMaxVolumeSizeArg) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
           Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'Rar' and '$(ZipadeePassword)' == ''"
           WorkingDirectory="$(ZipadeeStagingDir)" />
 
@@ -305,6 +362,16 @@
                         Condition="'$(ZipadeeCabDdfPath)' != ''">
       <Output TaskParameter="Lines" ItemName="ZipadeeUserDdfLine" />
     </ReadLinesFromFile>
+    <!-- ZipadeeMaxVolumeSize always overwrites any MaxDiskSize the user's own DDF sets (it's
+         added to the mandatory/forced-last lines below, after @(ZipadeeUserDdfLine)) - warn here
+         so that silent override isn't a surprise, matching every other mandatory/forced-last
+         setting's spirit but called out explicitly since a user might reasonably expect their own
+         DDF's MaxDiskSize to win the way CompressionType/CompressionMemory overrides do. -->
+    <ItemGroup Condition="'$(ZipadeeMaxVolumeSize)' != '' and '$(ZipadeeOutputFormat)' == 'Cab'">
+      <ZipadeeUserDdfMaxDiskSizeLine Include="@(ZipadeeUserDdfLine)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(Identity)', '^\s*\.Set\s+MaxDiskSize\s*='))" />
+    </ItemGroup>
+    <Warning Condition="'@(ZipadeeUserDdfMaxDiskSizeLine)' != ''"
+             Text="Zipadee: ZipadeeMaxVolumeSize is set, which overwrites the MaxDiskSize directive already in $(ZipadeeCabDdfPath) - remove one or the other to avoid confusion." />
     <ItemGroup Condition="'$(ZipadeeOutputFormat)' == 'Cab'">
       <!-- Without these, makecab.exe writes setup.inf/setup.rpt (a driver-install-era artifact,
            irrelevant here) into whatever the current working directory happens to be - verified
@@ -317,9 +384,15 @@
       <ZipadeeDdfLine Include=".Set CompressionMemory=$(ZipadeeCabCompressionMemorySetting)" Condition="'$(ZipadeeCabCompressionMemorySetting)' != ''" />
       <ZipadeeDdfLine Include="@(ZipadeeUserDdfLine)" />
       <ZipadeeDdfLine Include=".Set Cabinet=on" />
-      <ZipadeeDdfLine Include=".Set CabinetNameTemplate=$([System.IO.Path]::GetFileName('$(ZipadeeArchiveOutputPath)'))" />
-      <ZipadeeDdfLine Include=".Set DiskDirectory1=$([System.IO.Path]::GetDirectoryName('$(ZipadeeArchiveOutputPath)'))" />
+      <ZipadeeDdfLine Include=".Set CabinetNameTemplate=$(ZipadeeCabCabinetNameTemplate)" />
+      <!-- DiskDirectoryTemplate (applies to every disk uniformly), not DiskDirectory1 (disk 1
+           only) - confirmed empirically that DiskDirectory1 alone silently drops every disk past
+           the first when spanning is active (makecab's own /V3 log shows it planning all of them
+           correctly, it just has nowhere to write them), even though it works fine for the
+           common single-disk case too, so there's no downside to using it unconditionally. -->
+      <ZipadeeDdfLine Include=".Set DiskDirectoryTemplate=$([System.IO.Path]::GetDirectoryName('$(ZipadeeArchiveOutputPath)'))" />
       <ZipadeeDdfLine Include=".Set SourceDir=$(ZipadeeStagingDir)" />
+      <ZipadeeDdfLine Include=".Set MaxDiskSize=$(ZipadeeMaxVolumeSize)" Condition="'$(ZipadeeMaxVolumeSize)' != ''" />
       <ZipadeeDdfLine Include="@(ZipadeeArchiveItem->'&quot;%(ZipadeeArchivePath)&quot; &quot;%(ZipadeeArchivePath)&quot;')" />
     </ItemGroup>
     <WriteLinesToFile File="$(ZipadeeIntermediateDdfPath)"
@@ -333,10 +406,19 @@
               Text="Zipadee: no files to archive - add files to the project (Add &gt; Existing Item) to produce an archive."
               Condition="'@(ZipadeeArchiveItem)' == ''" />
 
+    <!-- Re-globs the same two patterns used for stale-volume cleanup above, but now after the
+         archive Execs have actually run, so this picks up whatever volume files were really just
+         created (the count/names aren't known ahead of time) for dotnet clean to track. -->
+    <ItemGroup Condition="'$(ZipadeeMaxVolumeSize)' != ''">
+      <ZipadeeCreatedVolumeFile Include="$(ZipadeeArchiveOutputPath).*" />
+      <ZipadeeCreatedVolumeFile Include="$([System.IO.Path]::GetDirectoryName('$(ZipadeeArchiveOutputPath)'))\$([System.IO.Path]::GetFileNameWithoutExtension('$(ZipadeeArchiveOutputPath)'))*$([System.IO.Path]::GetExtension('$(ZipadeeArchiveOutputPath)'))" />
+    </ItemGroup>
+
     <ItemGroup>
       <FileWrites Include="$(ZipadeeArchiveOutputPath)" />
       <FileWrites Include="$(ZipadeeIntermediateTarPath)" Condition="'$(ZipadeeOutputFormat)' == 'GZip'" />
       <FileWrites Include="$(ZipadeeIntermediateDdfPath)" Condition="'$(ZipadeeOutputFormat)' == 'Cab'" />
+      <FileWrites Include="@(ZipadeeCreatedVolumeFile)" />
     </ItemGroup>
 
   </Target>

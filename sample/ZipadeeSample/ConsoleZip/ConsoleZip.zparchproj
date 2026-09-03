@@ -7,7 +7,7 @@
     <ZipadeeCreateSfx>true</ZipadeeCreateSfx>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Zipadee.Build" Version="0.1.9" />
+    <PackageReference Include="Zipadee.Build" Version="0.1.12" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Hello.txt" />
