@@ -11,7 +11,7 @@
     <ZipadeeProjectOutputExclude>build-info.txt</ZipadeeProjectOutputExclude>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Zipadee.Build" Version="0.1.13" />
+    <PackageReference Include="Zipadee.Build" Version="0.1.14" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Hello.txt" />

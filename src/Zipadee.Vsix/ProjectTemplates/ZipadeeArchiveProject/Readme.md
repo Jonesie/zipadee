@@ -46,6 +46,7 @@ Set these either from the **Properties** window (F4) or the project's General **
 | `ZipadeeMaxVolumeSize` | a positive integer (bytes) | *(none, single file)* | Splits the archive into multiple numbered volumes of at most this many bytes each. Valid for `Zip`, `SevenZip`, `Rar`, and `Cab` (must be a multiple of 512 for `Cab`); ignored for `Tar`/`GZip`. |
 | `ZipadeeProjectOutputExclude` | `;`-separated wildcard patterns (`*.pdb`) or exact file names | *(none)* | Leaves matching files out of a referenced project's output. Doesn't affect this project's own `Content`/`None` items. |
 | `ZipadeeProjectOutputInclude` | `;`-separated wildcard patterns or exact file names | *(none)* | Overrides `ZipadeeProjectOutputExclude`, forcing matching files back in. Has no effect without `ZipadeeProjectOutputExclude` also set. |
+| `ZipadeeArchiveFileName` | text with `{ProjectName}`/`{Version}`/`{Date}`/`{Time}` tokens | `{ProjectName}` | The archive's output file name (without extension) - e.g. `{ProjectName}-{Date}` produces `MyArchive-20260901.zip`. `{Date}`/`{Time}` use `ZipadeeArchiveDateFormat`/`ZipadeeArchiveTimeFormat` (default `yyyyMMdd`/`HHmmss`). Ignored entirely if `ZipadeeArchiveOutputPath` is also set. |
 
 ### Compression level mapping
 

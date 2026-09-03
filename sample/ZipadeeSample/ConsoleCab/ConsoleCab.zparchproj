@@ -3,9 +3,10 @@
     <TargetFramework>net10.0</TargetFramework>
     <ProjectGuid>f2ea21a2-b735-4d0a-a148-37155b1fe62b</ProjectGuid>
     <ZipadeeOutputFormat>Cab</ZipadeeOutputFormat>
+    <ZipadeeArchiveFileName>{ProjectNamesddfs}</ZipadeeArchiveFileName>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Zipadee.Build" Version="0.1.13" />
+    <PackageReference Include="Zipadee.Build" Version="0.1.14" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Readme.txt" />
