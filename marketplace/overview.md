@@ -5,6 +5,8 @@
   alongside this file.
 -->
 
+<img src="images/zipadee-icon.png" alt="Zipadee" width="72" height="72" align="left" />
+
 # Zipadee
 
 Zipadee adds a **Zipadee Archive Project** type to Visual Studio: a project whose "build output" is an archive file (zip, 7z, tar, cab, or a self-extracting .exe) assembled from the files, linked files, and other projects' build outputs you add to it.
