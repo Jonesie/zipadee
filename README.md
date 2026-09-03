@@ -6,7 +6,7 @@ Zipadee adds a **Zipadee Archive Project** type to Visual Studio: a project whos
 
 Think of it as a lightweight, in-solution alternative to a separate packaging script - add a Zipadee project alongside the rest of your solution, add the files and project references you want bundled, and every build produces an up-to-date archive.
 
-> **Status:** not yet published to the Visual Studio Marketplace (tracked in [#16](https://github.com/Jonesie/zipadee/issues/16)). Until then, build the VSIX from source (see below) to try it.
+> **[Get it on the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=Jonesie.Zipadee)**, or build the VSIX from source (see below).
 
 > **External tools required, per format** - none of them are bundled, and both are expected on `PATH` (neither installer adds itself there automatically - a manual step after installing):
 > - `Zip`, `SevenZip`, `Tar`, `GZip` — [7-Zip](https://www.7-zip.org/)'s command-line tool (`7z`).
