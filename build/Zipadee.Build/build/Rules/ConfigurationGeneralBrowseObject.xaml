@@ -113,4 +113,22 @@
     </StringProperty.DataSource>
   </StringProperty>
 
+  <StringProperty Name="ZipadeeProjectOutputExclude"
+                  Category="Archive"
+                  DisplayName="Project reference output exclude"
+                  Description="Semicolon-separated wildcard patterns (*.pdb) or exact file names, matched against a referenced project's output files by their archive-relative name. Matching files are left out of the archive. Doesn't affect the project's own Content/None items.">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+    </StringProperty.DataSource>
+  </StringProperty>
+
+  <StringProperty Name="ZipadeeProjectOutputInclude"
+                  Category="Archive"
+                  DisplayName="Project reference output include"
+                  Description="Semicolon-separated wildcard patterns or exact file names that override ZipadeeProjectOutputExclude, forcing matching files back into the archive. Has no effect without ZipadeeProjectOutputExclude also set.">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+    </StringProperty.DataSource>
+  </StringProperty>
+
 </Rule>

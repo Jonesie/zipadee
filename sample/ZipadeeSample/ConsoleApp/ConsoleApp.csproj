@@ -7,4 +7,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Copied to this project's own output like any other build artifact, purely to give
+         ConsoleZip's ZipadeeProjectOutputExclude something real to filter out - see its
+         .zparchproj. -->
+    <Content Include="build-info.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
