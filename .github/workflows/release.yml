@@ -72,9 +72,14 @@ jobs:
       # Microsoft.VSSDK.BuildTools from NuGet itself to get a current VsixPublisher.exe - no VS
       # SDK install needed on the runner (confirmed via its own README, not assumed).
       - name: Publish to VS Marketplace
-        if: ${{ secrets.VS_PUBLISHER_ACCESS_TOKEN != '' }}
+        # `secrets` isn't a recognized context inside a step's `if:` (confirmed via a real
+        # workflow-file validation error: "Unrecognized named-value: 'secrets'") - route it
+        # through env: instead, which if: can reference.
+        if: ${{ env.VS_PUBLISHER_ACCESS_TOKEN != '' }}
+        env:
+          VS_PUBLISHER_ACCESS_TOKEN: ${{ secrets.VS_PUBLISHER_ACCESS_TOKEN }}
         uses: madskristensen/publish-marketplace@v2
         with:
           extension-file: src/Zipadee.Vsix/bin/Release/net472/*.vsix
           publish-manifest-file: marketplace/publishManifest.json
-          personal-access-code: ${{ secrets.VS_PUBLISHER_ACCESS_TOKEN }}
+          personal-access-code: ${{ env.VS_PUBLISHER_ACCESS_TOKEN }}
