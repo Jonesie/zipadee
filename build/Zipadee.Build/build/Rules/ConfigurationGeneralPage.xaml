@@ -92,4 +92,13 @@
     </BoolProperty.DataSource>
   </BoolProperty>
 
+  <StringProperty Name="ZipadeeMaxVolumeSize"
+                  Category="Archive"
+                  DisplayName="Max volume size (bytes)"
+                  Description="Splits the archive into multiple numbered files of at most this many bytes each. Supported for Zip, SevenZip, Rar, and Cab (must be a multiple of 512 for Cab); ignored for Tar and GZip. Can't be combined with self-extracting output.">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+    </StringProperty.DataSource>
+  </StringProperty>
+
 </Rule>

@@ -1,0 +1,2 @@
+Just a small extra file alongside data/large-asset.bin, to show ZipadeeMaxVolumeSize
+splitting a mixed set of files, not only a single blob.

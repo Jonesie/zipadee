@@ -18,13 +18,18 @@
 ; --- Naming and location - Zipadee sets these itself and they are FORCED LAST, so anything set
 ;     here is overridden; listed for reference only ---
 ;.Set CabinetNameTemplate=MyArchive.cab  ; * is replaced by the cabinet/disk number when spanning
-;.Set DiskDirectory1=C:\output           ; output folder for disk 1
+;.Set DiskDirectoryTemplate=C:\output    ; output folder for every disk (see ZipadeeMaxVolumeSize)
 ;.Set Cabinet=on                         ; ON|OFF - turns cabinet creation on at all
 ;.Set SourceDir=C:\staging               ; base folder the file list's relative paths resolve from
 
-; --- Multi-disk spanning (splits the archive across multiple cabinets/volumes - see issue #30) ---
-;.Set MaxDiskSize=0                      ; 0 = unlimited (single cabinet); or a byte count, or a
-                                          ; well-known size like 1440000 (1.44MB floppy)
+; --- Multi-disk spanning (splits the archive across multiple cabinets/volumes - see issue #30).
+;     Prefer the ZipadeeMaxVolumeSize MSBuild property instead of MaxDiskSize here - it works the
+;     same way across every supported format, not just Cab, and it always overwrites MaxDiskSize
+;     if both are set (with a build warning) - see "Multi-volume archives" in
+;     marketplace/overview.md and the ConsoleVolumes sample. ---
+;.Set MaxDiskSize=0                      ; 0 = unlimited (single cabinet); or a byte count
+                                          ; (must be a multiple of 512), or a well-known size like
+                                          ; 1440000 (1.44MB floppy)
 ;.Set MaxDiskSize2=0                     ; per-disk override (MaxDiskSize<n>) for disk 2, 3, ...
 ;.Set DiskDirectory2=C:\output\disk2     ; one DiskDirectory<n> per disk if spanning across folders
 ;.Set DiskDirectoryTemplate=C:\output\disk*  ; * replaced by disk number

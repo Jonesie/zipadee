@@ -5,4 +5,5 @@
   <Project Path="ConsoleCab/ConsoleCab.zparchproj" Type="e05aa5a1-99d4-42dc-9d46-82ae1bdc5bab" Id="f2ea21a2-b735-4d0a-a148-37155b1fe62b" />
   <Project Path="ConsoleTar/ConsoleTar.zparchproj" Type="e05aa5a1-99d4-42dc-9d46-82ae1bdc5bab" Id="6f7fadf9-0c50-4721-8a4e-9b543d736348" />
   <Project Path="ConsoleGZip/ConsoleGZip.zparchproj" Type="e05aa5a1-99d4-42dc-9d46-82ae1bdc5bab" Id="e78fe75a-b470-4771-bd34-d0cc8405184e" />
+  <Project Path="ConsoleVolumes/ConsoleVolumes.zparchproj" Type="e05aa5a1-99d4-42dc-9d46-82ae1bdc5bab" Id="8d67aa42-309a-4a4a-b3ff-97d2bf139750" />
 </Solution>

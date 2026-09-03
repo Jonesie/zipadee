@@ -1,8 +1,11 @@
 <Project Sdk="Microsoft.Build.NoTargets/3.7.0">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <ProjectGuid>e78fe75a-b470-4771-bd34-d0cc8405184e</ProjectGuid>
-    <ZipadeeOutputFormat>GZip</ZipadeeOutputFormat>
+    <ProjectGuid>8d67aa42-309a-4a4a-b3ff-97d2bf139750</ProjectGuid>
+    <ZipadeeOutputFormat>Zip</ZipadeeOutputFormat>
+    <!-- Well below data/large-asset.bin's size, so the archive is forced to span
+         more than one volume - see Readme.txt. -->
+    <ZipadeeMaxVolumeSize>200000</ZipadeeMaxVolumeSize>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Zipadee.Build" Version="0.1.12" />
@@ -10,7 +13,7 @@
   <ItemGroup>
     <Content Include="Readme.txt" />
     <Content Include="docs\Notes.txt" />
-    <Content Include="data\Sample.xml" />
+    <Content Include="data\large-asset.bin" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ConsoleApp\ConsoleApp.csproj" />
