@@ -9,6 +9,7 @@
   </TemplateData>
   <TemplateContent>
     <Project TargetFileName="$safeprojectname$.zparchproj" File="ProjectTemplate.zparchproj" ReplaceParameters="true">
+      <ProjectItem TargetFileName="Readme.md" ReplaceParameters="false">Readme.md</ProjectItem>
     </Project>
   </TemplateContent>
 </VSTemplate>

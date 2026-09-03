@@ -9,7 +9,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Zipadee.Build" Version="0.1.9" />
+    <PackageReference Include="Zipadee.Build" Version="0.1.13" />
+  </ItemGroup>
+
+  <!-- Explicit, not relying on default item globbing to pick it up: confirmed empirically that
+       Microsoft.Build.NoTargets projects don't auto-include loose files as implicit None items
+       the way a normal Microsoft.NET.Sdk project does (EnableDefaultNoneItems ends up true, but
+       the glob that's supposed to act on it never actually adds anything - an ordering quirk
+       somewhere in how NoTargets chains into the SDK's own targets). None, not Content, so it
+       stays out of the archive - only Content items are archived (see Readme.md itself). -->
+  <ItemGroup>
+    <None Include="Readme.md" />
   </ItemGroup>
 
 </Project>
