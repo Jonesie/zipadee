@@ -4,7 +4,14 @@
     <Identity Id="Zipadee.Vsix..e0e0d446-dd6d-4aac-8bbd-13debf9a4c62" Version="0.1.8" Language="en-US" Publisher="Jonesie" />
     <DisplayName>Zipadee</DisplayName>
     <Description xml:space="preserve">Adds a project type that packages files, linked files, and other projects' build outputs into an archive (zip, 7z, tar, self-extracting exe).</Description>
+    <!-- Schema-mandated order within Metadata: MoreInfo/License come before Icon,
+         PreviewImage/Tags come after - confirmed empirically (VSSDK1062 schema validation
+         rejects any other order). Tags is semicolon-delimited, not comma-delimited. -->
+    <MoreInfo>https://github.com/Jonesie/zipadee</MoreInfo>
+    <License>Resources\LICENSE.txt</License>
     <Icon>Resources\Icon.png</Icon>
+    <PreviewImage>Resources\PreviewImage.png</PreviewImage>
+    <Tags>archive;zip;7-zip;rar;cab;tar;gzip;msbuild;packaging;build</Tags>
   </Metadata>
   <Installation>
     <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0,)">

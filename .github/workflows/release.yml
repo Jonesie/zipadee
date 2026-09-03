@@ -65,8 +65,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload "${{ github.event.release.tag_name }}" src/Zipadee.Vsix/bin/Release/net472/*.vsix --clobber
 
-      # TODO: publish to the Visual Studio Marketplace (the official Microsoft extension
-      # store) once we decide to make the extension public. This needs a Marketplace
-      # publisher account, a personal access token stored as a repo secret, and running
-      # VsixPublisher.exe (from the VS SDK) with a publish manifest against the built
-      # .vsix. Deferred until that decision is made.
+      # Publishes to the Visual Studio Marketplace (issue #16) - skipped entirely (not failed)
+      # until the VS_PUBLISHER_ACCESS_TOKEN secret actually exists, so this step is a no-op for
+      # every release before the Marketplace publisher account/PAT are set up, rather than
+      # breaking releases in the meantime. madskristensen/publish-marketplace downloads
+      # Microsoft.VSSDK.BuildTools from NuGet itself to get a current VsixPublisher.exe - no VS
+      # SDK install needed on the runner (confirmed via its own README, not assumed).
+      - name: Publish to VS Marketplace
+        if: ${{ secrets.VS_PUBLISHER_ACCESS_TOKEN != '' }}
+        uses: madskristensen/publish-marketplace@v2
+        with:
+          extension-file: src/Zipadee.Vsix/bin/Release/net472/*.vsix
+          publish-manifest-file: marketplace/publishManifest.json
+          personal-access-code: ${{ secrets.VS_PUBLISHER_ACCESS_TOKEN }}

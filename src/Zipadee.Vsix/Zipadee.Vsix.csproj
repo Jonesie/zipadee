@@ -40,6 +40,19 @@
       <IncludeInVSIX>true</IncludeInVSIX>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <!-- Marketplace listing assets (issue #16) - referenced by source.extension.vsixmanifest's
+         <License>/<PreviewImage>. VSIX asset paths must be project-relative, so these are local
+         copies (LICENSE.txt mirrors the repo-root LICENSE, PreviewImage.png mirrors
+         marketplace/images/solution-explorer.png) rather than references outside the project,
+         same reasoning as Icon.png above. -->
+    <Content Include="Resources\LICENSE.txt">
+      <IncludeInVSIX>true</IncludeInVSIX>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Resources\PreviewImage.png">
+      <IncludeInVSIX>true</IncludeInVSIX>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <!-- Modern search-index template asset (declared in source.extension.vsixmanifest). -->
     <Content Include="ProjectTemplates\ZipadeeArchiveProject.zip">
       <IncludeInVSIX>true</IncludeInVSIX>
