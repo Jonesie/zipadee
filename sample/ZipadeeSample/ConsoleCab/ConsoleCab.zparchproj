@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.Build.NoTargets/3.7.0">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ProjectGuid>f2ea21a2-b735-4d0a-a148-37155b1fe62b</ProjectGuid>
+    <ZipadeeOutputFormat>Cab</ZipadeeOutputFormat>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Zipadee.Build" Version="0.1.9" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Readme.txt" />
+    <Content Include="docs\Notes.txt" />
+    <Content Include="data\Sample.ini" />
+    <!-- None, not Content - it's a Cab settings file, not something to put in the archive
+         itself. Picked up automatically because it's named after the project. -->
+    <None Include="ConsoleCab.ddf" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ConsoleApp\ConsoleApp.csproj" />
+  </ItemGroup>
+</Project>

@@ -135,6 +135,8 @@ With no further settings, Zipadee generates the whole DDF itself - the file list
 
 This file is always excluded from the cab's own contents, even if it's also added to the project as a `Content` item (e.g. so it shows up in Solution Explorer) - unlike every other format, where a file with this same name is just an ordinary file and follows the normal Content/None rule above.
 
+See `sample/ZipadeeSample/ConsoleCab` in the repo for a real, working example, including a DDF listing every documented `makecab.exe` directive.
+
 ### Full example
 
 A project that produces a password-protected, self-extracting 7-Zip archive at maximum compression, containing a content file, a linked file, and another project's build output:
