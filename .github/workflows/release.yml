@@ -80,6 +80,12 @@ jobs:
           VS_PUBLISHER_ACCESS_TOKEN: ${{ secrets.VS_PUBLISHER_ACCESS_TOKEN }}
         uses: madskristensen/publish-marketplace@v2
         with:
-          extension-file: src/Zipadee.Vsix/bin/Release/net472/*.vsix
+          # A literal path, not a glob - unlike the `gh release upload` step above (whose *.vsix
+          # gets shell-expanded by pwsh before gh ever sees it), this action's `with:` inputs are
+          # passed to it as literal strings with no shell expansion, so a glob pattern just fails
+          # to match anything (confirmed empirically: "extension-file not found: ...*.vsix").
+          # Zipadee.Vsix.vsix comes from the project's AssemblyName, not the PackageManifest's
+          # Identity Id, so it doesn't change when that Identity's GUID does.
+          extension-file: src/Zipadee.Vsix/bin/Release/net472/Zipadee.Vsix.vsix
           publish-manifest-file: marketplace/publishManifest.json
           personal-access-code: ${{ env.VS_PUBLISHER_ACCESS_TOKEN }}
