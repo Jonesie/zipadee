@@ -6,6 +6,7 @@
     },
     "overview": "overview.md",
     "assetFiles": [
+        { "pathOnDisk": "images/zipadee-icon.png", "targetPath": "images/zipadee-icon.png" },
         { "pathOnDisk": "images/solution-explorer.png", "targetPath": "images/solution-explorer.png" },
         { "pathOnDisk": "images/project-properties.png", "targetPath": "images/project-properties.png" },
         { "pathOnDisk": "images/new-project-dialog.png", "targetPath": "images/new-project-dialog.png" },
