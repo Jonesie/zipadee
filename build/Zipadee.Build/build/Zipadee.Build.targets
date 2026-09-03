@@ -148,10 +148,35 @@
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'Rar'">.rar</ZipadeeArchiveExtension>
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'Cab'">.cab</ZipadeeArchiveExtension>
 
+    <!-- Customizable archive file name (issue #19) - {ProjectName}/{Version}/{Date}/{Time}
+         tokens, literally substituted (not a general templating engine) since that's all four
+         chained String.Replace calls need. {Date}/{Time} take their format from the two separate
+         format properties below rather than an inline "{Date:YYYYMMDD}" syntax - MSBuild has no
+         regex-replace-with-computed-value, only a fixed replacement string per call, so an inline
+         per-token format couldn't be substituted with an actually-computed date/time this way;
+         two plain properties sidestep that entirely, at the cost of one shared format for every
+         {Date} (or {Time}) occurrence rather than a different one per occurrence - a reasonable
+         trade since a file name has little reason to use two different date formats at once.
+         $(Version) defaults to "1.0.0" via the SDK even when not set explicitly on the project,
+         so {Version} always resolves to something, never an empty gap in the name. -->
+    <ZipadeeArchiveFileName Condition="'$(ZipadeeArchiveFileName)' == ''">{ProjectName}</ZipadeeArchiveFileName>
+    <ZipadeeArchiveDateFormat Condition="'$(ZipadeeArchiveDateFormat)' == ''">yyyyMMdd</ZipadeeArchiveDateFormat>
+    <ZipadeeArchiveTimeFormat Condition="'$(ZipadeeArchiveTimeFormat)' == ''">HHmmss</ZipadeeArchiveTimeFormat>
+    <ZipadeeArchiveFileNameResolved>$(ZipadeeArchiveFileName.Replace('{ProjectName}', '$(MSBuildProjectName)').Replace('{Version}', '$(Version)').Replace('{Date}', '$([System.DateTime]::Now.ToString($(ZipadeeArchiveDateFormat)))').Replace('{Time}', '$([System.DateTime]::Now.ToString($(ZipadeeArchiveTimeFormat)))'))</ZipadeeArchiveFileNameResolved>
+
+    <!-- Captured before the default-value assignment below overwrites it, purely so
+         ZipadeeValidateArchiveSettings can tell "the user set this" apart from "this is just the
+         computed default" - both look identical (a non-empty string) by the time that target
+         actually runs. -->
+    <ZipadeeArchiveOutputPathWasSet Condition="'$(ZipadeeArchiveOutputPath)' != ''">true</ZipadeeArchiveOutputPathWasSet>
+
     <!-- Absolute: the archive Exec below runs with WorkingDirectory set to the staging folder
          (see ZipadeeStagingDir), so a relative path here would resolve against that instead of
-         $(OutDir). -->
-    <ZipadeeArchiveOutputPath Condition="'$(ZipadeeArchiveOutputPath)' == ''">$(MSBuildProjectDirectory)\$(OutDir)$(MSBuildProjectName)$(ZipadeeArchiveExtension)</ZipadeeArchiveOutputPath>
+         $(OutDir). Setting ZipadeeArchiveOutputPath directly still means exactly what it always
+         has - full manual control over the entire path, ZipadeeArchiveFileName and all the
+         tokening above included, ignored entirely (see the warning in
+         ZipadeeValidateArchiveSettings if both are set). -->
+    <ZipadeeArchiveOutputPath Condition="'$(ZipadeeArchiveOutputPath)' == ''">$(MSBuildProjectDirectory)\$(OutDir)$(ZipadeeArchiveFileNameResolved)$(ZipadeeArchiveExtension)</ZipadeeArchiveOutputPath>
 
     <!-- Cab's CabinetNameTemplate needs a numbering placeholder (*) whenever spanning might
          happen - confirmed empirically that a non-templated name silently produces a corrupt,
@@ -230,6 +255,16 @@
            Text="Zipadee: ZipadeeProjectOutputInclude can't contain \ - patterns match a project reference output file by name or extension (e.g. *.pdb), not by folder. Remove the \ from the pattern." />
     <Warning Condition="'$(ZipadeeProjectOutputInclude)' != '' and '$(ZipadeeProjectOutputExclude)' == ''"
              Text="Zipadee: ZipadeeProjectOutputInclude is set but ZipadeeProjectOutputExclude isn't, so there's nothing for it to override - it has no effect. Remove it, or set ZipadeeProjectOutputExclude too." />
+    <Warning Condition="'$(ZipadeeArchiveOutputPathWasSet)' == 'true' and '$(ZipadeeArchiveFileName)' != '' and '$(ZipadeeArchiveFileName)' != '{ProjectName}'"
+             Text="Zipadee: ZipadeeArchiveOutputPath is set, which takes over the whole output path and ignores ZipadeeArchiveFileName entirely. Remove one or the other to avoid confusion." />
+    <!-- A custom ZipadeeArchiveDateFormat/TimeFormat (e.g. the natural-looking "HH:mm:ss") can
+         inject a character Windows won't allow in a file name at all - caught here with a clear
+         message, rather than as whatever cryptic error the archive tool itself produces trying to
+         write to a path containing one. -->
+    <Error Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(ZipadeeArchiveDateFormat)', '[&lt;&gt;:&quot;/\\|?*]'))"
+           Text="Zipadee: ZipadeeArchiveDateFormat ('$(ZipadeeArchiveDateFormat)') would put a character into the archive file name that Windows doesn't allow there (one of &lt; &gt; : &quot; / \ | ? *) - e.g. use 'yyyyMMdd', not 'yyyy/MM/dd'." />
+    <Error Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(ZipadeeArchiveTimeFormat)', '[&lt;&gt;:&quot;/\\|?*]'))"
+           Text="Zipadee: ZipadeeArchiveTimeFormat ('$(ZipadeeArchiveTimeFormat)') would put a character into the archive file name that Windows doesn't allow there (one of &lt; &gt; : &quot; / \ | ? *) - e.g. use 'HHmmss', not 'HH:mm:ss'." />
   </Target>
 
   <!-- Split out from ZipadeeCreateArchive (rather than inlined at its top) so its Inputs check

@@ -23,6 +23,7 @@ Think of it as a lightweight, in-solution alternative to a separate packaging sc
 - **Incremental builds** — the archive is only rebuilt when its contents actually change, not on every build. Can be turned off per-project to force a fresh archive every time.
 - **Multi-volume archives** — split the output into multiple numbered files of a set maximum size, for the Zip, 7-Zip, RAR, and Cab formats (see [Multi-volume archives](marketplace/overview.md#multi-volume-archives)).
 - **Filter project reference output** — exclude files (by wildcard pattern or exact name) from a referenced project's output, with an override to force specific files back in (see [Filtering project reference output](marketplace/overview.md#filtering-project-reference-output)).
+- **Customizable archive file name** — compose the output file name from `{ProjectName}`/`{Version}`/`{Date}`/`{Time}` tokens (see [Customizing the archive file name](marketplace/overview.md#customizing-the-archive-file-name)).
 - **Configurable from the IDE** — the settings show up in the Properties window (F4) and on the project's General property page, or edit the project XML directly if you prefer.
 - Works with `dotnet build` / `dotnet restore` on the command line and in CI, not just inside Visual Studio.
 

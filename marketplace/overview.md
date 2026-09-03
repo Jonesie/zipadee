@@ -23,6 +23,7 @@ Think of it as a lightweight, in-solution alternative to a separate packaging sc
 - **Incremental builds** — the archive is only rebuilt when its contents actually change, not on every build. Can be turned off per-project to force a fresh archive every time.
 - **Multi-volume archives** — split the output into multiple numbered files of a set maximum size, for the Zip, 7-Zip, RAR, and Cab formats.
 - **Filter project reference output** — exclude files (by wildcard pattern or exact name) from a referenced project's output, with an override to force specific files back in.
+- **Customizable archive file name** — compose the output file name from `{ProjectName}`/`{Version}`/`{Date}`/`{Time}` tokens.
 - Works with `dotnet build` / `dotnet restore` on the command line and in CI, not just inside Visual Studio.
 
 ## Getting started
@@ -68,6 +69,9 @@ All archive settings are plain MSBuild properties. You can set them either from 
 | `ZipadeeMaxVolumeSize` | a positive integer (bytes) | *(none, single file)* | Splits the archive into multiple numbered volumes of at most this many bytes each. **Valid for `Zip`, `SevenZip`, `Rar`, and `Cab`** - ignored (with a warning) for `Tar`/`GZip`, since neither format supports it. **Not valid combined with `ZipadeeCreateSfx`** - a self-extracting archive can't also be split, and the build fails with a clear error if both are set. For `Cab` specifically, the value **must be a multiple of 512** (`makecab.exe`'s own cluster-size requirement); see [Cab files and DDF support](#cab-files-and-ddf-support) below for how it interacts with a custom DDF. See [Multi-volume archives](#multi-volume-archives) below for per-format output naming and the incremental-build caveat. |
 | `ZipadeeProjectOutputExclude` | `;`-separated wildcard patterns (`*.pdb`) or exact file names | *(none)* | Leaves matching files out of a referenced project's output - see [Filtering project reference output](#filtering-project-reference-output) below. Doesn't affect the project's own `Content`/`None` items, which already have full control via the item type itself. |
 | `ZipadeeProjectOutputInclude` | `;`-separated wildcard patterns or exact file names | *(none)* | Overrides `ZipadeeProjectOutputExclude`, forcing matching files back in. Has no effect (with a warning) without `ZipadeeProjectOutputExclude` also set. |
+| `ZipadeeArchiveFileName` | text with `{ProjectName}`/`{Version}`/`{Date}`/`{Time}` tokens | `{ProjectName}` | The archive's output file name (without extension) - see [Customizing the archive file name](#customizing-the-archive-file-name) below. **Ignored entirely if `ZipadeeArchiveOutputPath` is also set** (a warning is logged). |
+| `ZipadeeArchiveDateFormat` | a .NET date format string | `yyyyMMdd` | The format substituted wherever `{Date}` appears in `ZipadeeArchiveFileName`. Can't contain a character Windows disallows in file names (`< > : " / \ \| ? *`) - the build fails with a clear error if it does. |
+| `ZipadeeArchiveTimeFormat` | a .NET time format string | `HHmmss` | The format substituted wherever `{Time}` appears in `ZipadeeArchiveFileName`. Same character restriction as `ZipadeeArchiveDateFormat` above. |
 
 ### Where to put the items being archived
 
@@ -127,6 +131,29 @@ By default every file a `ProjectReference` copies to its output directory is arc
 A pattern can't contain `\` - it matches by file name or extension, not by folder. This is purely a filter over whatever already reaches the archive via the mechanism above; it doesn't pull in anything new. Notably, a companion `.pdb` or XML doc-comment file **isn't currently part of that set** for this project type (they're placed directly by the compiler, bypassing the copy-to-output-directory protocol these properties filter), so a `*.pdb` pattern has nothing to match yet.
 
 See `sample/ZipadeeSample/ConsoleZip` in the repo for a real, working example - it excludes a `build-info.txt` that `ConsoleApp` copies to its own output.
+
+### Customizing the archive file name
+
+By default the archive's file name is just the project name (e.g. `MyArchive.zip`). `ZipadeeArchiveFileName` composes a different one from four tokens, substituted literally wherever they appear:
+
+| Token | Substituted with |
+|---|---|
+| `{ProjectName}` | `$(MSBuildProjectName)` - the default on its own |
+| `{Version}` | `$(Version)` (defaults to `1.0.0` via the SDK if not set on the project) |
+| `{Date}` | today's date, formatted with `ZipadeeArchiveDateFormat` (default `yyyyMMdd`) |
+| `{Time}` | the current time, formatted with `ZipadeeArchiveTimeFormat` (default `HHmmss`) |
+
+```xml
+<PropertyGroup>
+  <ZipadeeArchiveFileName>{ProjectName}-{Version}-{Date}</ZipadeeArchiveFileName>
+</PropertyGroup>
+```
+
+produces `MyArchive-1.2.0-20260901.zip`. The date/time format is a separate property rather than an inline `{Date:yyyyMMdd}`-style syntax, so every `{Date}` (or `{Time}`) in the name shares one format - set `ZipadeeArchiveDateFormat`/`ZipadeeArchiveTimeFormat` to any .NET date/time format string, as long as it doesn't contain a character Windows disallows in file names (a stray `:` from something like `HH:mm:ss` is the most likely mistake - the build fails with a clear error rather than trying to write to an invalid path).
+
+This only controls the file name - for full control over the entire output path (including its directory), set `ZipadeeArchiveOutputPath` directly instead; doing so ignores `ZipadeeArchiveFileName` entirely (with a warning if both are set).
+
+See `sample/ZipadeeSample/ConsoleGZip` in the repo for a real, working example using `{Date}`.
 
 ### Setting the password
 

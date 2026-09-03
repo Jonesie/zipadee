@@ -8,7 +8,7 @@
     <ZipadeeMaxVolumeSize>200000</ZipadeeMaxVolumeSize>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Zipadee.Build" Version="0.1.13" />
+    <PackageReference Include="Zipadee.Build" Version="0.1.14" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Readme.txt" />

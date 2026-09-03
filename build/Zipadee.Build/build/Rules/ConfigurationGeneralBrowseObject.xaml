@@ -131,4 +131,31 @@
     </StringProperty.DataSource>
   </StringProperty>
 
+  <StringProperty Name="ZipadeeArchiveFileName"
+                  Category="Archive"
+                  DisplayName="Archive file name"
+                  Description="The archive's output file name (without extension), before {ProjectName}/{Version}/{Date}/{Time} tokens are substituted. Ignored entirely if ZipadeeArchiveOutputPath is also set.">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+    </StringProperty.DataSource>
+  </StringProperty>
+
+  <StringProperty Name="ZipadeeArchiveDateFormat"
+                  Category="Archive"
+                  DisplayName="Archive file name date format"
+                  Description="The .NET date format string substituted wherever {Date} appears in ZipadeeArchiveFileName. Default: yyyyMMdd.">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+    </StringProperty.DataSource>
+  </StringProperty>
+
+  <StringProperty Name="ZipadeeArchiveTimeFormat"
+                  Category="Archive"
+                  DisplayName="Archive file name time format"
+                  Description="The .NET time format string substituted wherever {Time} appears in ZipadeeArchiveFileName. Default: HHmmss.">
+    <StringProperty.DataSource>
+      <DataSource Persistence="ProjectFile" HasConfigurationCondition="False" />
+    </StringProperty.DataSource>
+  </StringProperty>
+
 </Rule>
