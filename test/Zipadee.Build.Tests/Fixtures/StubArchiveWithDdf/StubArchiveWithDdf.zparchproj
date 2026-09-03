@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.Build.NoTargets/3.7.0">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ZipadeeOutputFormat>Cab</ZipadeeOutputFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Zipadee.Build" Version="$(ZipadeeBuildTestVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Hello.txt" />
+    <!-- Tracked as Content (so it'd show in Solution Explorer, matching sample/ZipadeeSample/
+         ConsoleCab's own real pattern) - CabDdfTests confirms it's still excluded from the cab's
+         own contents despite that, unlike every other format's Content/None rule. -->
+    <Content Include="StubArchiveWithDdf.ddf" />
+  </ItemGroup>
+
+</Project>

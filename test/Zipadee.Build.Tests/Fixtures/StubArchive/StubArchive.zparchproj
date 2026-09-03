@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.Build.NoTargets/3.7.0">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Version supplied by the test harness on the command line (-p:ZipadeeBuildTestVersion=...),
+         always pointing at whatever was just packed from the current source tree - never a stale
+         cached version. -->
+    <PackageReference Include="Zipadee.Build" Version="$(ZipadeeBuildTestVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Hello.txt" />
+    <Content Include="docs\Notes.txt" />
+    <!-- Empty by default - MaxVolumeSizeTests writes a large file in here (in its own isolated
+         copy of this fixture) before building, to force volume spanning. -->
+    <Content Include="volume-data\**\*.*" />
+    <!-- A file outside the project folder, linked in at a different path - LinkedFilesTests. -->
+    <Content Include="..\Shared\Linked.txt" Link="linked\Linked.txt" />
+    <!-- A whole external folder linked in, preserving its structure - LinkedFilesTests. -->
+    <Content Include="..\ExternalFolder\**\*.*">
+      <Link>fromexternal\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\StubApp\StubApp.csproj" />
+  </ItemGroup>
+
+</Project>

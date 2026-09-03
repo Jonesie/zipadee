@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Coverlet excludes the assembly under test's own test project by default, on the assumption
+     that "system under test" and "tests" are always separate assemblies. Here they aren't - the
+     only C# actually worth measuring (Infrastructure/*.cs: the fixture-copying, process-running,
+     archive-inspecting harness) lives inside Zipadee.Build.Tests itself, alongside the [Fact]/
+     [Theory] test methods that exercise it. IncludeTestAssembly=true is what makes that visible
+     at all - without it, running with XPlat Code Coverage collection enabled reports zero
+     assemblies, confirmed empirically. -->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <IncludeTestAssembly>true</IncludeTestAssembly>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>
