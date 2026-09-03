@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <clipPath id="rounded">
+      <rect x="0" y="0" width="128" height="128" rx="24" ry="24" />
+    </clipPath>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1b2a4a" />
+      <stop offset="42%" stop-color="#5b6fa0" />
+      <stop offset="68%" stop-color="#f2a65a" />
+      <stop offset="100%" stop-color="#fbdf9b" />
+    </linearGradient>
+    <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fff6d8" />
+      <stop offset="100%" stop-color="#ffcf6e" />
+    </linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f6c98a" />
+      <stop offset="100%" stop-color="#7d8fae" />
+    </linearGradient>
+    <linearGradient id="backPeak" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8b93b8" />
+      <stop offset="100%" stop-color="#6a749e" />
+    </linearGradient>
+    <linearGradient id="midPeak" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5c6690" />
+      <stop offset="100%" stop-color="#454d70" />
+    </linearGradient>
+  </defs>
+
+  <g clip-path="url(#rounded)">
+    <rect x="0" y="0" width="128" height="128" fill="url(#sky)" />
+
+    <circle cx="64" cy="66" r="15" fill="url(#sun)" opacity="0.95" />
+
+    <!-- Back range - hazy, distant Southern Alps -->
+    <path d="M -4 78 L 14 56 L 30 70 L 46 48 L 62 68 L 80 44 L 98 66 L 116 52 L 132 78 Z"
+          fill="url(#backPeak)" opacity="0.55" />
+    <path d="M 12 58 L 18 64 L 24 58 Z M 44 50 L 50 56 L 56 50 Z M 78 46 L 84 52 L 90 46 Z"
+          fill="#ffffff" opacity="0.6" />
+
+    <!-- Mid range -->
+    <path d="M -4 86 L 20 60 L 34 76 L 52 54 L 66 74 L 86 58 L 104 78 L 132 86 L 132 96 L -4 96 Z"
+          fill="url(#midPeak)" />
+    <path d="M 18 62 L 24 68 L 30 62 Z M 50 56 L 56 62 L 62 56 Z M 84 60 L 90 66 L 96 60 Z"
+          fill="#ffffff" opacity="0.85" />
+
+    <!-- Valley floor + river -->
+    <path d="M -4 96 L 132 96 L 132 128 L -4 128 Z" fill="#2f3557" />
+    <path d="M 64 96 C 58 104 70 110 62 118 C 56 124 66 126 60 128 L 68 128 C 74 122 62 118 70 112 C 78 106 66 102 72 96 Z"
+          fill="url(#water)" opacity="0.9" />
+
+    <!-- Foreground tree line -->
+    <g fill="#232748">
+      <path d="M 8 96 L 12 84 L 16 96 Z" />
+      <path d="M 16 96 L 20 86 L 24 96 Z" />
+      <path d="M 100 96 L 105 85 L 110 96 Z" />
+      <path d="M 108 96 L 112 88 L 116 96 Z" />
+      <path d="M 116 96 L 121 84 L 126 96 Z" />
+    </g>
+  </g>
+</svg>
