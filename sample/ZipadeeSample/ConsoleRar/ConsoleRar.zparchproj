@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.Build.NoTargets/3.7.0">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ProjectGuid>cff439eb-0438-4784-8c3e-5c801b8a0c12</ProjectGuid>
+    <ZipadeeOutputFormat>Rar</ZipadeeOutputFormat>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Zipadee.Build" Version="0.1.9" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Readme.txt" />
+    <Content Include="docs\Notes.txt" />
+    <Content Include="data\Sample.csv" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ConsoleApp\ConsoleApp.csproj" />
+  </ItemGroup>
+</Project>

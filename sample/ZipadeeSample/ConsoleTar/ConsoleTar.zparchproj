@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.Build.NoTargets/3.7.0">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ProjectGuid>6f7fadf9-0c50-4721-8a4e-9b543d736348</ProjectGuid>
+    <ZipadeeOutputFormat>Tar</ZipadeeOutputFormat>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Zipadee.Build" Version="0.1.9" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Readme.txt" />
+    <Content Include="docs\Notes.txt" />
+    <Content Include="data\Sample.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ConsoleApp\ConsoleApp.csproj" />
+  </ItemGroup>
+</Project>

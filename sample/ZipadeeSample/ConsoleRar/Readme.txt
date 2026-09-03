@@ -1,0 +1,1 @@
+ConsoleRar - demonstrates ZipadeeOutputFormat=Rar.

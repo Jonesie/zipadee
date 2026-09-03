@@ -59,7 +59,17 @@ dotnet build Zipadee.slnx --configuration Release
 
 The built `.vsix` is produced at `src/Zipadee.Vsix/bin/Release/net472/Zipadee.Vsix.vsix`; double-click it to install into your own Visual Studio.
 
-`sample/ZipadeeSample` is a small solution (a console app plus an archive project referencing it) used to manually exercise the extension's build-time behavior - see [`marketplace/overview.md`](marketplace/overview.md) for what each of its project's settings demonstrate.
+`sample/ZipadeeSample` is a small solution used to manually exercise the extension's build-time behavior - a console app (`ConsoleApp`), plus one archive project per format, each referencing it:
+
+| Project | Format | Demonstrates |
+|---|---|---|
+| `ConsoleZip` | `SevenZip` | Self-extracting `.exe`, `Maximum` compression |
+| `ConsoleRar` | `Rar` | Needs WinRAR's `rar` on `PATH` (see the requirement above) |
+| `ConsoleCab` | `Cab` | `ConsoleCab.ddf`, a settings-only DDF picked up by naming convention (see [Cab files and DDF support](marketplace/overview.md#cab-files-and-ddf-support)) |
+| `ConsoleTar` | `Tar` | Plain, uncompressed tar |
+| `ConsoleGZip` | `GZip` | Gzip-compressed tar |
+
+Building the whole solution needs both 7-Zip and WinRAR on `PATH`. If one's missing, only that project's archive step fails - the others still build fine.
 
 ## Branching
 

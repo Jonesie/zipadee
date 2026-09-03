@@ -1,0 +1,1 @@
+A note living in a subfolder, to show subfolder structure is preserved in the archive.

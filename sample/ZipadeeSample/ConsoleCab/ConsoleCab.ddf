@@ -1,5 +1,5 @@
 ; Settings-only DDF for the Cab format - picked up automatically because it's named after the
-; project (ConsoleZip.ddf next to ConsoleZip.zparchproj). Only .Set directives belong here - the
+; project (ConsoleCab.ddf next to ConsoleCab.zparchproj). Only .Set directives belong here - the
 ; build appends the actual file list, and its own mandatory settings (marked below), automatically.
 ; See "Cab files and DDF support" in marketplace/overview.md.
 ;
@@ -11,7 +11,7 @@
 ;.Set CompressionType=LZX                ; MSZIP or LZX - LZX compresses better but is slower
 ;.Set CompressionMemory=21               ; LZX only, 15-21 - higher = better ratio, more memory
 .Set CompressionType=MSZIP               ; active example: forces MSZIP regardless of
-                                          ; ZipadeeCompressionLevel - check obj\Debug\ConsoleZip.ddf
+                                          ; ZipadeeCompressionLevel - check obj\Debug\ConsoleCab.ddf
                                           ; after building to see it merged with Zipadee's own
                                           ; computed settings
 
