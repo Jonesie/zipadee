@@ -5,9 +5,13 @@
     <ZipadeeOutputFormat>SevenZip</ZipadeeOutputFormat>
     <ZipadeeCompressionLevel>Maximum</ZipadeeCompressionLevel>
     <ZipadeeCreateSfx>true</ZipadeeCreateSfx>
+    <!-- ConsoleApp's own build-info.txt (see its .csproj) reaches this project's output via the
+         normal ProjectReference copy-to-output protocol - excluded here so it doesn't end up in
+         the shipped archive. -->
+    <ZipadeeProjectOutputExclude>build-info.txt</ZipadeeProjectOutputExclude>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Zipadee.Build" Version="0.1.12" />
+    <PackageReference Include="Zipadee.Build" Version="0.1.13" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Hello.txt" />

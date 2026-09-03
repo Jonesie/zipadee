@@ -110,6 +110,36 @@
     <ZipadeeMaxVolumeSizeArg Condition="'$(ZipadeeMaxVolumeSize)' != '' and ('$(ZipadeeOutputFormat)' == 'Zip' or '$(ZipadeeOutputFormat)' == 'SevenZip')">-v$(ZipadeeMaxVolumeSize)</ZipadeeMaxVolumeSizeArg>
     <ZipadeeMaxVolumeSizeArg Condition="'$(ZipadeeMaxVolumeSize)' != '' and '$(ZipadeeOutputFormat)' == 'Rar'">-v$(ZipadeeMaxVolumeSize)b</ZipadeeMaxVolumeSizeArg>
 
+    <!-- Filter a ProjectReference's output by pattern (issue #18) - each a ;-separated list of
+         wildcard patterns (*, ?) or exact relative file names, matched against the archive-relative
+         path (%(TargetPath), see ZipadeeResolveProjectReferenceOutputs) assigned to each file.
+         Doesn't touch the project's own Content/None items - those already have full control via
+         the item type itself.
+
+         Only applies to what actually reaches @(ZipadeeProjectOutputItem) today: the referenced
+         project's compiled assembly, its .deps.json/.runtimeconfig.json/apphost .exe, and any of
+         its own Content/None items marked CopyToOutputDirectory. Confirmed empirically that a
+         companion .pdb or XML doc-comment file is NOT part of that set for a NoTargets-based
+         referencing project like this one - neither GetCopyToOutputDirectoryItems nor GetTargetPath
+         returns them (they're placed by the compiler directly, bypassing the copy-to-output
+         protocol entirely) - so a pattern like *.pdb has nothing to match against yet. See #18's
+         follow-up for pulling those in; this filter works on whatever the set contains regardless.
+
+         Converted to a single regex here rather than split into item-list patterns: turning a
+         property containing a wildcard into an item Include makes MSBuild treat it as a filesystem
+         glob (confirmed empirically - the same landmine as ZipadeeCabCabinetNameTemplate above),
+         and separately, a property function's return value is itself escaped in a way that defeats
+         further semicolon-splitting when the result is reused as an Include value (confirmed
+         empirically: $(Prop.Replace(',', ';')) used as an Include produces one un-split item, not
+         several - Replace's result isn't just displayed with real semicolons, it's protected from
+         reinterpretation as one). Building one alternation regex directly at the property level
+         sidesteps both problems entirely. ZipadeeValidateArchiveSettings below rejects a pattern
+         containing \ - a raw backslash surviving into the regex can throw "unrecognized escape
+         sequence" for an unlucky combination of characters after it, and patterns are meant to
+         match by name/extension, not by folder. -->
+    <ZipadeeProjectOutputExcludeRegex Condition="'$(ZipadeeProjectOutputExclude)' != ''">^(?:$(ZipadeeProjectOutputExclude.Replace('.', '\.').Replace('*', '.*').Replace('?', '.').Replace(';', '|')))$</ZipadeeProjectOutputExcludeRegex>
+    <ZipadeeProjectOutputIncludeRegex Condition="'$(ZipadeeProjectOutputInclude)' != ''">^(?:$(ZipadeeProjectOutputInclude.Replace('.', '\.').Replace('*', '.*').Replace('?', '.').Replace(';', '|')))$</ZipadeeProjectOutputIncludeRegex>
+
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'Zip'">.zip</ZipadeeArchiveExtension>
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'SevenZip' and '$(ZipadeeCreateSfx)' == 'true'">.exe</ZipadeeArchiveExtension>
     <ZipadeeArchiveExtension Condition="'$(ZipadeeOutputFormat)' == 'SevenZip' and '$(ZipadeeCreateSfx)' != 'true'">.7z</ZipadeeArchiveExtension>
@@ -194,6 +224,12 @@
              Text="Zipadee: ZipadeeMaxVolumeSize is set but ignored for the Tar and GZip formats - neither has any volume-splitting support. Remove it, or switch to Zip, SevenZip, Rar, or Cab." />
     <Warning Condition="'$(ZipadeeMaxVolumeSize)' != '' and '$(ZipadeeIncrementalBuild)' == 'true' and '$(ZipadeeOutputFormat)' != 'Tar' and '$(ZipadeeOutputFormat)' != 'GZip'"
              Text="Zipadee: ZipadeeMaxVolumeSize splits the archive into multiple numbered files, which incremental build's staleness check can't track precisely - the archive will be rebuilt on every build regardless of ZipadeeIncrementalBuild. Safe (never serves a stale archive), just not optimally fast." />
+    <Error Condition="$(ZipadeeProjectOutputExclude.Contains('\'))"
+           Text="Zipadee: ZipadeeProjectOutputExclude can't contain \ - patterns match a project reference output file by name or extension (e.g. *.pdb), not by folder. Remove the \ from the pattern." />
+    <Error Condition="$(ZipadeeProjectOutputInclude.Contains('\'))"
+           Text="Zipadee: ZipadeeProjectOutputInclude can't contain \ - patterns match a project reference output file by name or extension (e.g. *.pdb), not by folder. Remove the \ from the pattern." />
+    <Warning Condition="'$(ZipadeeProjectOutputInclude)' != '' and '$(ZipadeeProjectOutputExclude)' == ''"
+             Text="Zipadee: ZipadeeProjectOutputInclude is set but ZipadeeProjectOutputExclude isn't, so there's nothing for it to override - it has no effect. Remove it, or set ZipadeeProjectOutputExclude too." />
   </Target>
 
   <!-- Split out from ZipadeeCreateArchive (rather than inlined at its top) so its Inputs check
@@ -223,6 +259,19 @@
       <ZipadeeProjectOutputItem Include="@(ZipadeeProjectTargetPathItem)">
         <TargetPath>%(ZipadeeProjectTargetPathItem.Filename)%(ZipadeeProjectTargetPathItem.Extension)</TargetPath>
       </ZipadeeProjectOutputItem>
+    </ItemGroup>
+
+    <!-- ZipadeeProjectOutputExclude/Include (issue #18) - removes any item whose TargetPath
+         matches the exclude pattern, unless the include pattern matches it too (an override, not
+         an additional filter to also satisfy - a file forced back in by Include doesn't also need
+         to dodge Exclude). Both regexes are '' (no effect) unless their property is set, so this
+         is a no-op - matching every project's behavior before this feature existed - when neither
+         is set. -->
+    <ItemGroup>
+      <ZipadeeProjectOutputItem Remove="@(ZipadeeProjectOutputItem)"
+        Condition="'$(ZipadeeProjectOutputExcludeRegex)' != ''
+                   and $([System.Text.RegularExpressions.Regex]::IsMatch('%(ZipadeeProjectOutputItem.TargetPath)', '$(ZipadeeProjectOutputExcludeRegex)'))
+                   and ('$(ZipadeeProjectOutputIncludeRegex)' == '' or !$([System.Text.RegularExpressions.Regex]::IsMatch('%(ZipadeeProjectOutputItem.TargetPath)', '$(ZipadeeProjectOutputIncludeRegex)')))" />
     </ItemGroup>
   </Target>
 

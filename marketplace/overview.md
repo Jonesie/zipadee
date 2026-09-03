@@ -22,6 +22,7 @@ Think of it as a lightweight, in-solution alternative to a separate packaging sc
 - **Self-extracting archives** — produce a self-extracting `.exe` (7-Zip format) that needs no archive tool to open.
 - **Incremental builds** — the archive is only rebuilt when its contents actually change, not on every build. Can be turned off per-project to force a fresh archive every time.
 - **Multi-volume archives** — split the output into multiple numbered files of a set maximum size, for the Zip, 7-Zip, RAR, and Cab formats.
+- **Filter project reference output** — exclude files (by wildcard pattern or exact name) from a referenced project's output, with an override to force specific files back in.
 - Works with `dotnet build` / `dotnet restore` on the command line and in CI, not just inside Visual Studio.
 
 ## Getting started
@@ -65,6 +66,8 @@ All archive settings are plain MSBuild properties. You can set them either from 
 | `ZipadeePassword` | any string | *(none)* | AES-256 password protection. **Only valid with `Zip`, `SevenZip`, or `Rar`** - Tar, GZip, and Cab have no encryption support, and the build fails if combined with one. Filenames are also encrypted automatically whenever a password is set (7-Zip's `-mhe=on`, or RAR's `-hp`, which does this as part of the same switch that sets the password). |
 | `ZipadeeIncrementalBuild` | `true`, `false` | `true` | Skip re-archiving when nothing changed. Set to `false` to force a fresh archive on every build. |
 | `ZipadeeMaxVolumeSize` | a positive integer (bytes) | *(none, single file)* | Splits the archive into multiple numbered volumes of at most this many bytes each. **Valid for `Zip`, `SevenZip`, `Rar`, and `Cab`** - ignored (with a warning) for `Tar`/`GZip`, since neither format supports it. **Not valid combined with `ZipadeeCreateSfx`** - a self-extracting archive can't also be split, and the build fails with a clear error if both are set. For `Cab` specifically, the value **must be a multiple of 512** (`makecab.exe`'s own cluster-size requirement); see [Cab files and DDF support](#cab-files-and-ddf-support) below for how it interacts with a custom DDF. See [Multi-volume archives](#multi-volume-archives) below for per-format output naming and the incremental-build caveat. |
+| `ZipadeeProjectOutputExclude` | `;`-separated wildcard patterns (`*.pdb`) or exact file names | *(none)* | Leaves matching files out of a referenced project's output - see [Filtering project reference output](#filtering-project-reference-output) below. Doesn't affect the project's own `Content`/`None` items, which already have full control via the item type itself. |
+| `ZipadeeProjectOutputInclude` | `;`-separated wildcard patterns or exact file names | *(none)* | Overrides `ZipadeeProjectOutputExclude`, forcing matching files back in. Has no effect (with a warning) without `ZipadeeProjectOutputExclude` also set. |
 
 ### Where to put the items being archived
 
@@ -101,6 +104,29 @@ Pull in another project's build output with a normal `ProjectReference` - the re
   <ProjectReference Include="..\ConsoleApp\ConsoleApp.csproj" />
 </ItemGroup>
 ```
+
+### Filtering project reference output
+
+By default every file a `ProjectReference` copies to its output directory is archived - the compiled assembly, its `.deps.json`/`.runtimeconfig.json`/apphost `.exe`, and any of the referenced project's own `Content`/`None` items marked `CopyToOutputDirectory`. `ZipadeeProjectOutputExclude` leaves matching files out instead, by a `;`-separated list of wildcard patterns (`*`/`?`) or exact file names, matched against each file's archive-relative name:
+
+```xml
+<PropertyGroup>
+  <ZipadeeProjectOutputExclude>*.pdb;ThirdParty.dll</ZipadeeProjectOutputExclude>
+</PropertyGroup>
+```
+
+`ZipadeeProjectOutputInclude` (same pattern syntax) forces specific files back in even if `ZipadeeProjectOutputExclude` would otherwise drop them - an override, not an additional filter both have to satisfy:
+
+```xml
+<PropertyGroup>
+  <ZipadeeProjectOutputExclude>*.dll</ZipadeeProjectOutputExclude>
+  <ZipadeeProjectOutputInclude>ThirdParty.dll</ZipadeeProjectOutputInclude>
+</PropertyGroup>
+```
+
+A pattern can't contain `\` - it matches by file name or extension, not by folder. This is purely a filter over whatever already reaches the archive via the mechanism above; it doesn't pull in anything new. Notably, a companion `.pdb` or XML doc-comment file **isn't currently part of that set** for this project type (they're placed directly by the compiler, bypassing the copy-to-output-directory protocol these properties filter), so a `*.pdb` pattern has nothing to match yet.
+
+See `sample/ZipadeeSample/ConsoleZip` in the repo for a real, working example - it excludes a `build-info.txt` that `ConsoleApp` copies to its own output.
 
 ### Setting the password
 
