@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<VSTemplate Version="3.0.0" Type="Item" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005">
+  <TemplateData>
+    <Name>Text File</Name>
+    <Description>An empty text file.</Description>
+    <ProjectType>Zipadee</ProjectType>
+    <!-- Add New Item's dialog filters by AppliesTo (a capability expression matched against the
+         project's declared Capabilities, "Zipadee" here - see ProjectTypeRegistration.cs),
+         unlike Add New Project which matches ProjectType above instead. Confirmed via research
+         (see issue #31) - this was missing entirely on the first attempt at this template, which
+         is almost certainly why it never showed up under Add New Item no matter what VS-side
+         cache got rebuilt. -->
+    <AppliesTo>Zipadee</AppliesTo>
+    <DefaultName>TextFile1.txt</DefaultName>
+    <!-- The classic Add New Item list/icon view has historically required a real Icon reference
+         to include an entry at all (unlike the New Project tile view, which tolerates a missing
+         one with a default) - untested hypothesis, worth ruling in/out since nothing else has
+         explained the entry's absence so far. Placeholder icon, not a real design asset (see
+         issue #28 for the extension's own icon, which is a separate, unrelated concern). -->
+    <Icon>__TemplateIcon.ico</Icon>
+  </TemplateData>
+  <TemplateContent>
+    <ProjectItem ReplaceParameters="false" TargetFileName="$fileinputname$.txt">EmptyFile.txt</ProjectItem>
+  </TemplateContent>
+</VSTemplate>

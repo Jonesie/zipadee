@@ -436,4 +436,5 @@ FodyWeavers.xsd
 src/Zipadee.Vsix/bin/
 src/Zipadee.Vsix/obj/
 src/Zipadee.Vsix/ProjectTemplates/*.zip
+src/Zipadee.Vsix/ItemTemplates/*.zip
 src/Zipadee.Vsix/extension.vsixmanifest

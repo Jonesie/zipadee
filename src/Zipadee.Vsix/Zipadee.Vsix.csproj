@@ -32,7 +32,9 @@
 
   <ItemGroup>
     <None Remove="ProjectTemplates\**\*.*" />
+    <None Remove="ItemTemplates\**\*.*" />
     <None Remove="TemplateDirs.pkgdef" />
+    <None Remove="ItemTemplateDirs.pkgdef" />
     <!-- Modern search-index template asset (declared in source.extension.vsixmanifest). -->
     <Content Include="ProjectTemplates\ZipadeeArchiveProject.zip">
       <IncludeInVSIX>true</IncludeInVSIX>
@@ -48,12 +50,35 @@
       <IncludeInVSIX>true</IncludeInVSIX>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <!-- Item template (Add New Item > Text File) - same dual registration as the project
+         template above (modern manifest asset + legacy NewItemTemplates\TemplateDirs), see #31.
+         NOTE: never got Add New Item to actually show this - see the issue for the full
+         investigation trail before touching this again. -->
+    <Content Include="ItemTemplates\TextFile.zip">
+      <IncludeInVSIX>true</IncludeInVSIX>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ItemTemplates\TextFile\**\*.*">
+      <IncludeInVSIX>true</IncludeInVSIX>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="ItemTemplateDirs.pkgdef">
+      <IncludeInVSIX>true</IncludeInVSIX>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <Target Name="ZipProjectTemplates" BeforeTargets="AssignTargetPaths;GetCopyToOutputDirectoryItems">
     <ZipDirectory
         SourceDirectory="ProjectTemplates\ZipadeeArchiveProject"
         DestinationFile="ProjectTemplates\ZipadeeArchiveProject.zip"
+        Overwrite="true" />
+  </Target>
+
+  <Target Name="ZipItemTemplates" BeforeTargets="AssignTargetPaths;GetCopyToOutputDirectoryItems">
+    <ZipDirectory
+        SourceDirectory="ItemTemplates\TextFile"
+        DestinationFile="ItemTemplates\TextFile.zip"
         Overwrite="true" />
   </Target>
 
