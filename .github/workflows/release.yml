@@ -74,6 +74,45 @@ jobs:
       - name: Build (Release)
         run: dotnet build Zipadee.slnx --configuration Release --no-restore
 
+      # Signs the built VSIX (issue #61) so installs are verifiable/tamper-evident - a self-issued
+      # certificate isn't accepted by the Marketplace, and a paid CA cert isn't justified yet, so
+      # this uses SignPath.io's free code-signing program for open-source projects. No-op (skipped,
+      # not failed) until SIGNPATH_API_TOKEN exists as a repo secret - i.e. until the OSS
+      # application is approved and the org/project/policy slugs below are known for real. Same
+      # no-op-until-configured pattern as VS_PUBLISHER_ACCESS_TOKEN below.
+      - name: Upload unsigned VSIX for signing
+        if: ${{ env.SIGNPATH_API_TOKEN != '' }}
+        id: unsigned-vsix
+        env:
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-vsix
+          path: src/Zipadee.Vsix/bin/Release/net472/*.vsix
+          retention-days: 1
+
+      - name: Sign VSIX via SignPath
+        if: ${{ env.SIGNPATH_API_TOKEN != '' }}
+        env:
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          # TODO: fill in once the SignPath OSS application is approved and a project is created.
+          organization-id: 'TODO'
+          project-slug: 'zipadee'
+          signing-policy-slug: 'release-signing'
+          artifact-configuration-slug: 'vsix'
+          github-artifact-id: ${{ steps.unsigned-vsix.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: 'src/Zipadee.Vsix/bin/Release/net472/signed'
+
+      - name: Replace unsigned VSIX with signed copy
+        if: ${{ env.SIGNPATH_API_TOKEN != '' }}
+        env:
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+        run: Copy-Item src/Zipadee.Vsix/bin/Release/net472/signed/*.vsix src/Zipadee.Vsix/bin/Release/net472/ -Force
+
       - name: Upload VSIX to GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

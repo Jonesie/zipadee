@@ -45,7 +45,7 @@ Think of it as a lightweight, in-solution alternative to a separate packaging sc
 4. Add files via **Add > Existing Item** (or **Add as Link** for files outside the project folder), or add a **Project Reference** to another project in your solution to pull in its build output.
 5. Build. The archive appears alongside the project's other build output.
 
-Archive settings (format, compression level, password, self-extracting) are set as MSBuild properties in the project file - see [Project file reference](#project-file-reference) below for a quick summary, or the [full reference](https://jonesie.github.io/zipadee/docs/reference) for every property.
+Archive settings (format, compression level, password, self-extracting) are set as MSBuild properties in the project file - see Project file reference below for a quick summary, or the [full reference](https://jonesie.github.io/zipadee/docs/reference) for every property.
 
 Start from **File > New > Project** and search for "Zip" or "Zipadee" - the **Zipadee Archive Project** template shows up alongside any other installed template. Give it a name and location like any other project; it's added to the solution as its own project, not a folder inside an existing one.
 
