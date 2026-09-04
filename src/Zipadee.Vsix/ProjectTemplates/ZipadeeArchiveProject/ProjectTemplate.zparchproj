@@ -8,8 +8,16 @@
     <ProjectGuid>$guid1$</ProjectGuid>
   </PropertyGroup>
 
+  <!-- A floating version, not a pinned one - a pinned version here has to be kept in sync by
+       hand with whatever's actually published to nuget.org (release.yml, since Zipadee.Build's
+       version is tied to the release tag), and it already drifted once: this stayed at 0.1.13
+       (a version that only ever existed in a dev machine's local NuGet feed, never published
+       anywhere) through several real releases, silently breaking every new project created from
+       this template outside that machine - no F4 properties, no archive on build, since
+       restoring the package is what pulls in all of that. Floating to the latest published
+       version removes the possibility of that drift recurring for new projects. -->
   <ItemGroup>
-    <PackageReference Include="Zipadee.Build" Version="0.1.13" />
+    <PackageReference Include="Zipadee.Build" Version="*" />
   </ItemGroup>
 
   <!-- Explicit, not relying on default item globbing to pick it up: confirmed empirically that
