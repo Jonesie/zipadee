@@ -17,13 +17,13 @@ Think of it as a lightweight, in-solution alternative to a separate packaging sc
 
 - **Files, links, and project outputs** — add existing files directly, link to files elsewhere on disk, or reference another project in the solution and pull in its build output (with correct build ordering, for free, via standard MSBuild project references).
 - **Multiple archive formats** — Zip, 7-Zip (.7z), Tar, gzip-compressed tar (.tar.gz), Windows Cabinet (.cab), and RAR (.rar). None of the underlying tools are bundled - see the requirement above.
-- **Configurable compression** — from Store (no compression) through Ultra, one generic scale mapped to each format's own native settings (see [Compression level mapping](marketplace/overview.md#compression-level-mapping)).
+- **Configurable compression** — from Store (no compression) through Ultra, one generic scale mapped to each format's own native settings (see [Compression level mapping](https://jonesie.github.io/zipadee/docs/reference#compression-level-mapping)).
 - **Password protection** — AES-256 encryption for the Zip, 7-Zip, and RAR formats, with header encryption (hides filenames too) applied automatically. The password lives in your local `.user` file, never in the shared project file.
 - **Self-extracting archives** — produce a self-extracting `.exe` (7-Zip format) that needs no archive tool to open.
 - **Incremental builds** — the archive is only rebuilt when its contents actually change, not on every build. Can be turned off per-project to force a fresh archive every time.
-- **Multi-volume archives** — split the output into multiple numbered files of a set maximum size, for the Zip, 7-Zip, RAR, and Cab formats (see [Multi-volume archives](marketplace/overview.md#multi-volume-archives)).
-- **Filter project reference output** — exclude files (by wildcard pattern or exact name) from a referenced project's output, with an override to force specific files back in (see [Filtering project reference output](marketplace/overview.md#filtering-project-reference-output)).
-- **Customizable archive file name** — compose the output file name from `{ProjectName}`/`{Version}`/`{Date}`/`{Time}` tokens (see [Customizing the archive file name](marketplace/overview.md#customizing-the-archive-file-name)).
+- **Multi-volume archives** — split the output into multiple numbered files of a set maximum size, for the Zip, 7-Zip, RAR, and Cab formats (see [Multi-volume archives](https://jonesie.github.io/zipadee/docs/reference#multi-volume-archives)).
+- **Filter project reference output** — exclude files (by wildcard pattern or exact name) from a referenced project's output, with an override to force specific files back in (see [Filtering project reference output](https://jonesie.github.io/zipadee/docs/reference#filtering-project-reference-output)).
+- **Customizable archive file name** — compose the output file name from `{ProjectName}`/`{Version}`/`{Date}`/`{Time}` tokens (see [Customizing the archive file name](https://jonesie.github.io/zipadee/docs/reference#customizing-the-archive-file-name)).
 - **Configurable from the IDE** — the settings show up in the Properties window (F4) and on the project's General property page, or edit the project XML directly if you prefer.
 - Works with `dotnet build` / `dotnet restore` on the command line and in CI, not just inside Visual Studio.
 
@@ -37,7 +37,7 @@ Building it produces the archive as that project's output:
 
 ![A completed build producing a self-extracting archive](marketplace/images/build-output.png)
 
-See [`marketplace/overview.md`](marketplace/overview.md) for the full MSBuild project file reference (every archive setting, with examples) and more screenshots.
+See the [full project file reference](https://jonesie.github.io/zipadee/docs/reference) for every archive setting with examples, or [`marketplace/overview.md`](marketplace/overview.md) for more screenshots.
 
 See the [issue tracker](https://github.com/Jonesie/zipadee/issues) for the current milestone plan (M0–M5) and known gaps.
 
@@ -68,7 +68,7 @@ The built `.vsix` is produced at `src/Zipadee.Vsix/bin/Release/net472/Zipadee.Vs
 |---|---|---|
 | `ConsoleZip` | `SevenZip` | Self-extracting `.exe`, `Maximum` compression |
 | `ConsoleRar` | `Rar` | Needs WinRAR's `rar` on `PATH` (see the requirement above) |
-| `ConsoleCab` | `Cab` | `ConsoleCab.ddf`, a settings-only DDF picked up by naming convention (see [Cab files and DDF support](marketplace/overview.md#cab-files-and-ddf-support)) |
+| `ConsoleCab` | `Cab` | `ConsoleCab.ddf`, a settings-only DDF picked up by naming convention (see [Cab files and DDF support](https://jonesie.github.io/zipadee/docs/reference#cab-files-and-ddf-support)) |
 | `ConsoleTar` | `Tar` | Plain, uncompressed tar |
 | `ConsoleGZip` | `GZip` | Gzip-compressed tar |
 
