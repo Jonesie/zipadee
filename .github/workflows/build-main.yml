@@ -29,6 +29,25 @@ jobs:
       - name: Build (Release)
         run: dotnet build Zipadee.slnx --configuration Release --no-restore
 
+      # Mirrors ci.yml's test gate (see #46) - main has no branch protection, so this is the only
+      # actual safety net before a release gets cut from it, not redundant busywork.
+      - name: Install 7-Zip and WinRAR
+        run: |
+          choco install 7zip --no-progress -y
+          choco install winrar --no-progress -y
+          "C:\Program Files\7-Zip" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "C:\Program Files\WinRAR" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Test
+        run: dotnet test Zipadee.slnx --configuration Release --no-build --collect:"XPlat Code Coverage" --settings test/Zipadee.Build.Tests/coverlet.runsettings --results-directory TestResults
+
+      - name: Publish coverage summary
+        if: always()
+        run: |
+          dotnet tool install -g dotnet-reportgenerator-globaltool
+          reportgenerator -reports:TestResults/**/coverage.cobertura.xml -targetdir:CoverageReport -reporttypes:MarkdownSummaryGithub
+          Get-Content CoverageReport/SummaryGithub.md | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v4
         with:
