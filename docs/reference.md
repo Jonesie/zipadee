@@ -238,3 +238,9 @@ A project that produces a password-protected, self-extracting 7-Zip archive at m
 ```
 
 with a `ConsoleZip.zparchproj.user` file alongside it setting `ZipadeePassword`, as shown above.
+
+---
+
+If Zipadee saved you some time, consider buying the maintainer a coffee:
+
+<a href="https://www.buymeacoffee.com/jonesie" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
