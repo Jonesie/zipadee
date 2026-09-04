@@ -1,28 +1,69 @@
 ---
 layout: default
-title: Project File Reference
+title: Zipadee Project File Reference
 description: The full MSBuild property reference for Zipadee Archive Projects - every setting, with examples.
 ---
 
-# Project file reference
+# Zipadee project file reference
 
 The full MSBuild property reference for **Zipadee Archive Projects**. See the [README](https://github.com/Jonesie/zipadee) or the [Marketplace listing](https://marketplace.visualstudio.com/items?itemName=Jonesie.Zipadee) for an overview and screenshots.
 
 All archive settings are plain MSBuild properties. You can set them either from Visual Studio - select the project node and use the **Properties** window (F4), or the **General** page of the project's **Properties** - or by editing the `.zparchproj` file directly. The password is the one exception to where it gets saved: it goes to a `.zparchproj.user` file rather than the project file (see below), whichever way you set it.
 
-| Property | Values | Default | Notes |
-|---|---|---|---|
-| `ZipadeeOutputFormat` | `Zip`, `SevenZip`, `Tar`, `GZip`, `Cab`, `Rar` | `Zip` | `Zip`/`SevenZip`/`Tar`/`GZip` need 7-Zip's command-line tool on `PATH`; `Rar` needs WinRAR's `rar` on `PATH` too. None of them are bundled. `GZip` produces a `.tar.gz` (tar, then gzip-compressed) since gzip alone can't hold more than one file. `Cab` produces a Windows Cabinet using the `makecab.exe` built into every Windows install - nothing extra needed - see [Cab files and DDF support](#cab-files-and-ddf-support) below. |
-| `ZipadeeCompressionLevel` | `Store`, `Fastest`, `Fast`, `Normal`, `Maximum`, `Ultra` | `Normal` | One generic scale across every format - each maps it to its own native settings differently. See [Compression level mapping](#compression-level-mapping) below. Ignored for `Tar` (tar itself doesn't compress). |
-| `ZipadeeCreateSfx` | `true`, `false` | `false` | Produces a self-extracting `.exe` instead of a plain archive (console-style extraction, since 7-Zip's default SFX module is used). **Only valid with `ZipadeeOutputFormat=SevenZip`** - 7-Zip's SFX modules can't self-extract any other format, and the build fails with a clear error if combined with one. |
-| `ZipadeePassword` | any string | *(none)* | AES-256 password protection. **Only valid with `Zip`, `SevenZip`, or `Rar`** - Tar, GZip, and Cab have no encryption support, and the build fails if combined with one. Filenames are also encrypted automatically whenever a password is set (7-Zip's `-mhe=on`, or RAR's `-hp`, which does this as part of the same switch that sets the password). |
-| `ZipadeeIncrementalBuild` | `true`, `false` | `true` | Skip re-archiving when nothing changed. Set to `false` to force a fresh archive on every build. |
-| `ZipadeeMaxVolumeSize` | a positive integer (bytes) | *(none, single file)* | Splits the archive into multiple numbered volumes of at most this many bytes each. **Valid for `Zip`, `SevenZip`, `Rar`, and `Cab`** - ignored (with a warning) for `Tar`/`GZip`, since neither format supports it. **Not valid combined with `ZipadeeCreateSfx`** - a self-extracting archive can't also be split, and the build fails with a clear error if both are set. For `Cab` specifically, the value **must be a multiple of 512** (`makecab.exe`'s own cluster-size requirement); see [Cab files and DDF support](#cab-files-and-ddf-support) below for how it interacts with a custom DDF. See [Multi-volume archives](#multi-volume-archives) below for per-format output naming and the incremental-build caveat. |
-| `ZipadeeProjectOutputExclude` | `;`-separated wildcard patterns (`*.pdb`) or exact file names | *(none)* | Leaves matching files out of a referenced project's output - see [Filtering project reference output](#filtering-project-reference-output) below. Doesn't affect the project's own `Content`/`None` items, which already have full control via the item type itself. |
-| `ZipadeeProjectOutputInclude` | `;`-separated wildcard patterns or exact file names | *(none)* | Overrides `ZipadeeProjectOutputExclude`, forcing matching files back in. Has no effect (with a warning) without `ZipadeeProjectOutputExclude` also set. |
-| `ZipadeeArchiveFileName` | text with `{ProjectName}`/`{Version}`/`{Date}`/`{Time}` tokens | `{ProjectName}` | The archive's output file name (without extension) - see [Customizing the archive file name](#customizing-the-archive-file-name) below. **Ignored entirely if `ZipadeeArchiveOutputPath` is also set** (a warning is logged). |
-| `ZipadeeArchiveDateFormat` | a .NET date format string | `yyyyMMdd` | The format substituted wherever `{Date}` appears in `ZipadeeArchiveFileName`. Can't contain a character Windows disallows in file names (`< > : " / \ | ? *`) - the build fails with a clear error if it does. |
-| `ZipadeeArchiveTimeFormat` | a .NET time format string | `HHmmss` | The format substituted wherever `{Time}` appears in `ZipadeeArchiveFileName`. Same character restriction as `ZipadeeArchiveDateFormat` above. |
+### `ZipadeeOutputFormat`
+**Values:** `Zip`, `SevenZip`, `Tar`, `GZip`, `Cab`, `Rar` · **Default:** `Zip`
+
+`Zip`/`SevenZip`/`Tar`/`GZip` need 7-Zip's command-line tool on `PATH`; `Rar` needs WinRAR's `rar` on `PATH` too. None of them are bundled. `GZip` produces a `.tar.gz` (tar, then gzip-compressed) since gzip alone can't hold more than one file. `Cab` produces a Windows Cabinet using the `makecab.exe` built into every Windows install - nothing extra needed - see [Cab files and DDF support](#cab-files-and-ddf-support) below.
+
+### `ZipadeeCompressionLevel`
+**Values:** `Store`, `Fastest`, `Fast`, `Normal`, `Maximum`, `Ultra` · **Default:** `Normal`
+
+One generic scale across every format - each maps it to its own native settings differently. See [Compression level mapping](#compression-level-mapping) below. Ignored for `Tar` (tar itself doesn't compress).
+
+### `ZipadeeCreateSfx`
+**Values:** `true`, `false` · **Default:** `false`
+
+Produces a self-extracting `.exe` instead of a plain archive (console-style extraction, since 7-Zip's default SFX module is used). **Only valid with `ZipadeeOutputFormat=SevenZip`** - 7-Zip's SFX modules can't self-extract any other format, and the build fails with a clear error if combined with one.
+
+### `ZipadeePassword`
+**Values:** any string · **Default:** *(none)*
+
+AES-256 password protection. **Only valid with `Zip`, `SevenZip`, or `Rar`** - Tar, GZip, and Cab have no encryption support, and the build fails if combined with one. Filenames are also encrypted automatically whenever a password is set (7-Zip's `-mhe=on`, or RAR's `-hp`, which does this as part of the same switch that sets the password).
+
+### `ZipadeeIncrementalBuild`
+**Values:** `true`, `false` · **Default:** `true`
+
+Skip re-archiving when nothing changed. Set to `false` to force a fresh archive on every build.
+
+### `ZipadeeMaxVolumeSize`
+**Values:** a positive integer (bytes) · **Default:** *(none, single file)*
+
+Splits the archive into multiple numbered volumes of at most this many bytes each. **Valid for `Zip`, `SevenZip`, `Rar`, and `Cab`** - ignored (with a warning) for `Tar`/`GZip`, since neither format supports it. **Not valid combined with `ZipadeeCreateSfx`** - a self-extracting archive can't also be split, and the build fails with a clear error if both are set. For `Cab` specifically, the value **must be a multiple of 512** (`makecab.exe`'s own cluster-size requirement); see [Cab files and DDF support](#cab-files-and-ddf-support) below for how it interacts with a custom DDF. See [Multi-volume archives](#multi-volume-archives) below for per-format output naming and the incremental-build caveat.
+
+### `ZipadeeProjectOutputExclude`
+**Values:** `;`-separated wildcard patterns (`*.pdb`) or exact file names · **Default:** *(none)*
+
+Leaves matching files out of a referenced project's output - see [Filtering project reference output](#filtering-project-reference-output) below. Doesn't affect the project's own `Content`/`None` items, which already have full control via the item type itself.
+
+### `ZipadeeProjectOutputInclude`
+**Values:** `;`-separated wildcard patterns or exact file names · **Default:** *(none)*
+
+Overrides `ZipadeeProjectOutputExclude`, forcing matching files back in. Has no effect (with a warning) without `ZipadeeProjectOutputExclude` also set.
+
+### `ZipadeeArchiveFileName`
+**Values:** text with `{ProjectName}`/`{Version}`/`{Date}`/`{Time}` tokens · **Default:** `{ProjectName}`
+
+The archive's output file name (without extension) - see [Customizing the archive file name](#customizing-the-archive-file-name) below. **Ignored entirely if `ZipadeeArchiveOutputPath` is also set** (a warning is logged).
+
+### `ZipadeeArchiveDateFormat`
+**Values:** a .NET date format string · **Default:** `yyyyMMdd`
+
+The format substituted wherever `{Date}` appears in `ZipadeeArchiveFileName`. Can't contain a character Windows disallows in file names (`< > : " / \ | ? *`) - the build fails with a clear error if it does.
+
+### `ZipadeeArchiveTimeFormat`
+**Values:** a .NET time format string · **Default:** `HHmmss`
+
+The format substituted wherever `{Time}` appears in `ZipadeeArchiveFileName`. Same character restriction as `ZipadeeArchiveDateFormat` above.
 
 ## Where to put the items being archived
 
