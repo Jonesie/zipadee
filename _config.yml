@@ -1,0 +1,3 @@
+theme: jekyll-theme-cayman
+title: Zipadee
+description: A Visual Studio project type that packages files, linked files, and other projects' build outputs into an archive (zip, 7z, tar, cab, or a self-extracting exe).
