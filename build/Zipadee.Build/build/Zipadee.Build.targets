@@ -368,22 +368,32 @@
     </ItemGroup>
     <Delete Files="@(ZipadeeStaleVolumeFile)" Condition="'$(ZipadeeMaxVolumeSize)' != ''" />
 
-    <!-- The password is passed as an environment variable and referenced as a %-placeholder in
-         the command text, rather than embedded directly in it - MSBuild's Exec task always
-         echoes its Command text to the build log (which for a PR/CI build gets persisted and
-         possibly published), and 7-Zip's CLI has no safer input channel (no stdin/response-file
-         support for it). This keeps the literal password out of that log.
+    <!-- The password is passed as an environment variable and referenced by name in the command
+         text, rather than embedded directly in it - MSBuild's Exec task always echoes its Command
+         text to the build log (which for a PR/CI build gets persisted and possibly published),
+         and 7-Zip's CLI has no safer input channel (no stdin/response-file support for it). This
+         keeps the literal password out of that log.
 
          %3B-escaped: MSBuild splits both item lists and this string-array task parameter on
          unescaped ';', which would otherwise silently corrupt (truncate/split) a password that
-         happens to contain one. -->
+         happens to contain one.
+
+         ZipadeePasswordRef's syntax has to match whichever shell Exec actually runs the command
+         through - cmd.exe on Windows (%VAR%), /bin/sh elsewhere ($VAR). Getting this wrong is a
+         silent bug, not a build failure: 7z/rar would receive the literal, wrong text
+         "%ZIPADEE_PASSWORD%" as the password on a non-Windows agent instead of the real one,
+         producing a password-protected archive nobody can actually open with the password they
+         set - confirmed by inspection, not hit accidentally (this repo's own CI only runs
+         windows-latest today). -->
     <PropertyGroup>
       <ZipadeePasswordEnv>ZIPADEE_PASSWORD=$(ZipadeePassword.Replace(';', '%3B'))</ZipadeePasswordEnv>
+      <ZipadeePasswordRef Condition="$([MSBuild]::IsOSPlatform('Windows'))">%ZIPADEE_PASSWORD%</ZipadeePasswordRef>
+      <ZipadeePasswordRef Condition="!$([MSBuild]::IsOSPlatform('Windows'))">$ZIPADEE_PASSWORD</ZipadeePasswordRef>
     </PropertyGroup>
 
     <!-- Zip: AES-256 needs -mem=AES256 explicitly, since 7-Zip's zip writer otherwise defaults
          to the weak, legacy ZipCrypto method. -->
-    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -tzip -mx=$(ZipadeeCompressionLevelValue) -mem=AES256 -p%ZIPADEE_PASSWORD% $(ZipadeeMaxVolumeSizeArg) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
+    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -tzip -mx=$(ZipadeeCompressionLevelValue) -mem=AES256 -p$(ZipadeePasswordRef) $(ZipadeeMaxVolumeSizeArg) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
           Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'Zip' and '$(ZipadeePassword)' != ''"
           EnvironmentVariables="$(ZipadeePasswordEnv)"
           WorkingDirectory="$(ZipadeeStagingDir)" />
@@ -396,7 +406,7 @@
          is set, since 7z is the one format here that supports it. $(ZipadeeSfxArg) (empty
          unless ZipadeeCreateSfx is set) prepends the bundled SFX module, producing a
          self-extracting .exe instead of a plain .7z - see ZipadeeArchiveExtension above. -->
-    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -t7z -mx=$(ZipadeeCompressionLevelValue) -mhe=on -p%ZIPADEE_PASSWORD% $(ZipadeeSfxArg) $(ZipadeeMaxVolumeSizeArg) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
+    <Exec Command="&quot;$(ZipadeeSevenZipExe)&quot; a -t7z -mx=$(ZipadeeCompressionLevelValue) -mhe=on -p$(ZipadeePasswordRef) $(ZipadeeSfxArg) $(ZipadeeMaxVolumeSizeArg) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
           Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'SevenZip' and '$(ZipadeePassword)' != ''"
           EnvironmentVariables="$(ZipadeePasswordEnv)"
           WorkingDirectory="$(ZipadeeStagingDir)" />
@@ -422,7 +432,7 @@
     <!-- Rar: -hp<password> is a single switch encrypting both file contents and headers
          (filenames) - simpler than Zip's -mem=AES256+-p or 7z's -p+-mhe=on pairs above. No SFX
          support for Rar (the existing SFX+non-SevenZip check above already rejects it). -->
-    <Exec Command="&quot;$(ZipadeeRarExe)&quot; a -m$(ZipadeeRarCompressionValue) -hp%ZIPADEE_PASSWORD% $(ZipadeeMaxVolumeSizeArg) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
+    <Exec Command="&quot;$(ZipadeeRarExe)&quot; a -m$(ZipadeeRarCompressionValue) -hp$(ZipadeePasswordRef) $(ZipadeeMaxVolumeSizeArg) -r &quot;$(ZipadeeArchiveOutputPath)&quot; *"
           Condition="'@(ZipadeeArchiveItem)' != '' and '$(ZipadeeOutputFormat)' == 'Rar' and '$(ZipadeePassword)' != ''"
           EnvironmentVariables="$(ZipadeePasswordEnv)"
           WorkingDirectory="$(ZipadeeStagingDir)" />
