@@ -99,7 +99,15 @@ jobs:
           user: Jonesie
 
       - name: Push Zipadee.Build to NuGet.org
-        run: dotnet nuget push nupkg/*.nupkg --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        # A literal resolved path, not a glob - confirmed empirically that unlike `gh release
+        # upload` above (which expands a glob argument internally, a documented gh CLI feature),
+        # `dotnet nuget push` does not, and PowerShell itself doesn't expand wildcards in
+        # arguments passed to an external executable the way a POSIX shell would ("error: File
+        # does not exist (nupkg/*.nupkg)"). Get-ChildItem is a real PowerShell cmdlet, so its own
+        # wildcard expansion works normally here.
+        run: |
+          $nupkg = Get-ChildItem nupkg/*.nupkg | Select-Object -First 1 -ExpandProperty FullName
+          dotnet nuget push "$nupkg" --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
 
       # Publishes to the Visual Studio Marketplace (issue #16) - skipped entirely (not failed)
       # until the VS_PUBLISHER_ACCESS_TOKEN secret actually exists, so this step is a no-op for
