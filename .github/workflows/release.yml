@@ -6,6 +6,11 @@ on:
 
 permissions:
   contents: write
+  # NuGet Trusted Publishing (Zipadee.Build - see issue reported after v0.5.2: the package has
+  # never actually been published anywhere reachable, so every real install's PackageReference
+  # silently fails to restore) exchanges this OIDC token for a short-lived nuget.org API key -
+  # no long-lived secret to store or leak.
+  id-token: write
 
 jobs:
   publish-artifacts:
@@ -40,22 +45,31 @@ jobs:
       - name: Restore
         run: dotnet restore Zipadee.slnx
 
-      - name: Stamp VSIX version from release tag
+      # Computed once and shared via $env:GITHUB_ENV rather than duplicating the tag-parsing/
+      # validation in every step that needs it (the VSIX manifest stamp below, and the
+      # Zipadee.Build NuGet version) - each `run:` step is its own process, so a plain
+      # PowerShell variable wouldn't survive between steps.
+      - name: Compute release version from tag
         run: |
           $tag = "${{ github.event.release.tag_name }}"
           $version = $tag -replace '^v', ''
           if ($version -notmatch '^\d+\.\d+\.\d+(\.\d+)?$') {
-            Write-Error "Release tag '$tag' isn't a plain dotted version (e.g. v1.2.0) - VSIX version numbers can't have suffixes like '-beta'. Rename the tag/release and try again."
+            Write-Error "Release tag '$tag' isn't a plain dotted version (e.g. v1.2.0) - VSIX/NuGet version numbers can't have suffixes like '-beta'. Rename the tag/release and try again."
             exit 1
           }
+          "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Write-Output "Release version: $version"
+
+      - name: Stamp VSIX version from release tag
+        run: |
           $manifestPath = "src/Zipadee.Vsix/source.extension.vsixmanifest"
           [xml]$manifest = Get-Content $manifestPath
           $ns = New-Object System.Xml.XmlNamespaceManager($manifest.NameTable)
           $ns.AddNamespace("v", "http://schemas.microsoft.com/developer/vsx-schema/2011")
           $identity = $manifest.SelectSingleNode("//v:Identity", $ns)
-          $identity.SetAttribute("Version", $version)
+          $identity.SetAttribute("Version", "$env:VERSION")
           $manifest.Save((Resolve-Path $manifestPath))
-          Write-Output "Stamped VSIX version: $version"
+          Write-Output "Stamped VSIX version: $env:VERSION"
 
       - name: Build (Release)
         run: dotnet build Zipadee.slnx --configuration Release --no-restore
@@ -64,6 +78,28 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload "${{ github.event.release.tag_name }}" src/Zipadee.Vsix/bin/Release/net472/*.vsix --clobber
+
+      # Publishes Zipadee.Build to NuGet.org (issue reported after v0.5.2: it had never actually
+      # been published anywhere reachable - every real install's PackageReference to it silently
+      # failed to restore, so the extension has never worked outside this dev machine's own
+      # LocalPackages feed). Tied to the same release-tag version as the VSIX above, so the two
+      # can never drift apart the way the project template's hardcoded version already did once.
+      #
+      # Uses NuGet Trusted Publishing (OIDC) rather than a stored API key - see
+      # https://learn.microsoft.com/en-gb/nuget/nuget-org/trusted-publishing. Requires a Trusted
+      # Publishing policy already configured on nuget.org for Jonesie/zipadee, workflow
+      # release.yml, package pattern Zipadee.Build* - done as part of setting this up.
+      - name: Pack Zipadee.Build
+        run: dotnet pack build/Zipadee.Build/Zipadee.Build.csproj --configuration Release -o nupkg -p:Version=$env:VERSION --no-restore
+
+      - name: NuGet login (OIDC to short-lived API key)
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: Jonesie
+
+      - name: Push Zipadee.Build to NuGet.org
+        run: dotnet nuget push nupkg/*.nupkg --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
 
       # Publishes to the Visual Studio Marketplace (issue #16) - skipped entirely (not failed)
       # until the VS_PUBLISHER_ACCESS_TOKEN secret actually exists, so this step is a no-op for
